@@ -22,7 +22,7 @@ export interface CanvasTransform {
   zoom: number
   panX: number
   panY: number
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement | null>
   setZoomPreset: (zoom: number) => void
   fit: () => void
 }

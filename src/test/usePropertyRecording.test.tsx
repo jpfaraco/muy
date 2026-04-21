@@ -17,6 +17,9 @@ function makeMinimalDoc(frameCount = 5): AnimationDoc {
       'asset-1': { id: 'asset-1', name: 'Test', urls: ['data:image/png;base64,abc'] },
     },
     frames: Array.from({ length: frameCount }, () => ({})),
+    canvasWidth: 1920,
+    canvasHeight: 1080,
+    backgroundColor: '#ffffff',
   }
 }
 

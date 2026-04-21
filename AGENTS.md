@@ -15,16 +15,19 @@ Detailed description of Bret's demo: `_description/description.md` and attached 
 
 - Full project scaffold at `/Users/jpfaraco/workspace/muy/`
 - All core interactions implemented but with many bugs: layer hold, canvas drag recording, property widgets (slider-h, slider-v, rotation dial, image picker, layer list)
-- 36 unit/integration tests pass (Vitest)
-- Build clean (218 KB JS bundle)
+- 39 unit/integration tests pass (Vitest)
+- Build has 2 TS errors in test fixtures (missing `canvasWidth`/`canvasHeight`/`backgroundColor` on `AnimationDoc`)
 
 **Architecture decisions:**
 
-- `animationStore.ts` — Zustand: AnimationDoc (fps, frameCount, layers, imageAssets, frames[]) + currentFrame + isPlaying
-- `interactionStore.ts` — Zustand: heldLayerIds, floatingWidgets, layerListEntries (with sensitivity %)
+- `animationStore.ts` — Zustand: AnimationDoc (fps, frameCount, layers, imageAssets, frames[], canvasWidth, canvasHeight, backgroundColor) + currentFrame + isPlaying
+- `interactionStore.ts` — Zustand: heldLayerIds, floatingWidgets, layerListEntries (with sensitivity %), liveLayerProps, drawTool ('pencil' | 'eraser' | 'move' | 'pivot')
 - `useAnimationLoop` — rAF loop driving frame advancement
 - `usePropertyRecording` — connects widget manipulation to frame writes, respects sensitivity
 - `useWidgetDrag` — flick-to-dismiss (velocity > 600 px/s) + position tracking
+- `CanvasSettingsDialog` — modal (opened from Header) for setting canvas width/height/background color
+- `DrawToolbox` — draw tool selector (pencil/eraser/move/pivot) rendered inside Timeline
+- `DrawingLayer` — vector strokes, pencil/eraser tools (734 lines, complex coordinate math)
 
 **Why:** User wants to validate the performance-capture animation UX before building asset creation tools.
 

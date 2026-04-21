@@ -51,8 +51,6 @@ export function DrawToolbox() {
     if (center) setLayerPivot(targetLayerId, center.x, center.y)
   }
 
-  const previewColor = drawTool === 'eraser' ? '#4b5563' : drawColor
-
   return (
     <div className="flex flex-col gap-4">
       {/* Controls row — same vertical rhythm as the Animate controls row */}

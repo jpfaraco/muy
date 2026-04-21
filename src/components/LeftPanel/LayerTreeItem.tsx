@@ -34,8 +34,6 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const heldLayerIds = useInteractionStore((s) => s.heldLayerIds);
   const reorderDrag = useInteractionStore((s) => s.reorderDrag);
   const { holdLayer, releaseLayer, releaseAllLayers, addLayerToList, layerListEntries, startReorder } = useInteractionStore();
-  const mode = useInteractionStore((s) => s.mode);
-  const drawTool = useInteractionStore((s) => s.drawTool);
   const [isExpanded, setIsExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
