@@ -21,12 +21,12 @@ const FRAME_COUNT = 240 // 10 seconds
 /** Create a frame with sensible starting positions */
 function makeBaseFrame(): FrameData {
   return {
-    'layer-bg': { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, rotation: 0, scale: 1, transparency: 1 },
-    'layer-mid': { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT * 0.65, rotation: 0, scale: 1, transparency: 1 },
-    'layer-fg': { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 60, rotation: 0, scale: 1, transparency: 1 },
-    'layer-trunk': { x: CANVAS_WIDTH * 0.35, y: CANVAS_HEIGHT * 0.5, rotation: 0, scale: 1.2, transparency: 1 },
-    'layer-leaf': { x: CANVAS_WIDTH * 0.38, y: CANVAS_HEIGHT * 0.2, rotation: 0, scale: 1, transparency: 1 },
-    'layer-bunny': { x: CANVAS_WIDTH * 0.7, y: CANVAS_HEIGHT * 0.72, rotation: 0, scale: 1.5, transparency: 1 },
+    'layer-bg':    { x: CANVAS_WIDTH / 2,    y: CANVAS_HEIGHT / 2,    rotation: 0, scale: 2.4,  transparency: 1 },
+    'layer-mid':   { x: CANVAS_WIDTH / 2,    y: CANVAS_HEIGHT * 0.65, rotation: 0, scale: 2.75, transparency: 1 },
+    'layer-fg':    { x: CANVAS_WIDTH / 2,    y: CANVAS_HEIGHT * 0.88, rotation: 0, scale: 2.4,  transparency: 1 },
+    'layer-trunk': { x: CANVAS_WIDTH * 0.33, y: CANVAS_HEIGHT * 0.5,  rotation: 0, scale: 3.0,  transparency: 1 },
+    'layer-leaf':  { x: CANVAS_WIDTH * 0.36, y: CANVAS_HEIGHT * 0.2,  rotation: 0, scale: 2.4,  transparency: 1 },
+    'layer-bunny': { x: CANVAS_WIDTH * 0.72, y: CANVAS_HEIGHT * 0.72, rotation: 0, scale: 3.6,  transparency: 1 },
   }
 }
 
