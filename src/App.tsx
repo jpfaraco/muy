@@ -3,7 +3,6 @@ import { useAnimationStore } from './store/animationStore'
 import { useAnimationLoop } from './hooks/useAnimationLoop'
 import { initialDoc } from './assets/sample/initialDoc'
 import { Header } from './components/Header'
-import { Timeline } from './components/Timeline/Timeline'
 import { LeftPanel } from './components/LeftPanel/LeftPanel'
 import { CanvasArea } from './components/Canvas/CanvasArea'
 
@@ -23,7 +22,6 @@ export default function App() {
         <LeftPanel />
         <CanvasArea />
       </div>
-      <Timeline />
     </div>
   )
 }

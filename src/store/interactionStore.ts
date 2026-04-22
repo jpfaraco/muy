@@ -4,15 +4,22 @@ import type { LayerProps, PropertyKey } from '../types/animation'
 
 export type AppMode = 'animate' | 'draw'
 export type DrawTool = 'pencil' | 'eraser' | 'move' | 'pivot'
+export type ActiveTool = 'select' | 'pencil' | 'eraser' | 'pivot' | 'animate'
 
 interface InteractionState {
+  /** Unified toolbar tool — drives both mode and drawTool */
+  activeTool: ActiveTool
   /** Current editor mode */
   mode: AppMode
   /** Active drawing tool (draw mode only) */
   drawTool: DrawTool
   /** Stroke color as CSS hex string */
   drawColor: string
-  /** Stroke width in canvas units */
+  /** Pencil stroke width (1–64) */
+  pencilWidth: number
+  /** Eraser stroke width (1–128) */
+  eraserWidth: number
+  /** Active stroke width forwarded to DrawingLayer (mirrors pencilWidth or eraserWidth) */
   drawWidth: number
   /** Layer IDs currently held (finger down) in the layers panel */
   heldLayerIds: string[]
@@ -31,10 +38,12 @@ interface InteractionState {
 }
 
 interface InteractionActions {
+  setActiveTool: (tool: ActiveTool) => void
   setMode: (mode: AppMode) => void
   setDrawTool: (tool: DrawTool) => void
   setDrawColor: (color: string) => void
-  setDrawWidth: (width: number) => void
+  setPencilWidth: (width: number) => void
+  setEraserWidth: (width: number) => void
   holdLayer: (layerId: string) => void
   releaseLayer: (layerId: string) => void
   releaseAllLayers: () => void
@@ -61,10 +70,13 @@ type InteractionStore = InteractionState & InteractionActions
 let widgetIdCounter = 0
 
 export const useInteractionStore = create<InteractionStore>((set, get) => ({
+  activeTool: 'select',
   mode: 'animate',
   drawTool: 'pencil',
   drawColor: '#ffffff',
-  drawWidth: 4,
+  pencilWidth: 16,
+  eraserWidth: 32,
+  drawWidth: 16,
   heldLayerIds: [],
   selectedLayerIds: [],
   layerListEntries: null,
@@ -73,10 +85,42 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   liveLayerProps: {},
   reorderDrag: null,
 
+  setActiveTool: (tool) => {
+    const modeMap: Record<ActiveTool, AppMode> = {
+      select: 'animate',
+      pencil: 'draw',
+      eraser: 'draw',
+      pivot: 'draw',
+      animate: 'animate',
+    }
+    const drawToolMap: Partial<Record<ActiveTool, DrawTool>> = {
+      pencil: 'pencil',
+      eraser: 'eraser',
+      pivot: 'pivot',
+    }
+    const { pencilWidth, eraserWidth } = get()
+    const next: Partial<{ activeTool: ActiveTool; mode: AppMode; drawTool: DrawTool; drawWidth: number }> = {
+      activeTool: tool,
+      mode: modeMap[tool],
+    }
+    if (drawToolMap[tool]) next.drawTool = drawToolMap[tool]
+    if (tool === 'pencil') next.drawWidth = pencilWidth
+    if (tool === 'eraser') next.drawWidth = eraserWidth
+    set(next)
+  },
   setMode: (mode) => set({ mode }),
   setDrawTool: (drawTool) => set({ drawTool }),
   setDrawColor: (drawColor) => set({ drawColor }),
-  setDrawWidth: (drawWidth) => set({ drawWidth }),
+  setPencilWidth: (pencilWidth) =>
+    set((state) => ({
+      pencilWidth,
+      ...(state.activeTool === 'pencil' ? { drawWidth: pencilWidth } : {}),
+    })),
+  setEraserWidth: (eraserWidth) =>
+    set((state) => ({
+      eraserWidth,
+      ...(state.activeTool === 'eraser' ? { drawWidth: eraserWidth } : {}),
+    })),
 
   holdLayer: (layerId) =>
     set((state) => {

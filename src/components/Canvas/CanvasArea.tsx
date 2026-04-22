@@ -2,6 +2,8 @@ import { ChevronDown } from "lucide-react";
 import { AnimationCanvas } from "./AnimationCanvas";
 import { DrawingLayer } from "./DrawingLayer";
 import { WidgetLayer } from "./WidgetLayer";
+import { Toolbox } from "../Toolbar/Toolbox";
+import { ToolOptions } from "../Toolbar/ToolOptions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAnimationStore } from "../../store/animationStore";
@@ -60,6 +62,16 @@ export function CanvasArea() {
 
       {/* Widget overlay (animate mode floating widgets) */}
       <WidgetLayer />
+
+      {/* Floating toolbar — bottom-center */}
+      <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex flex-col items-center gap-3">
+        <div className="pointer-events-auto w-full flex justify-center">
+          <ToolOptions />
+        </div>
+        <div className="pointer-events-auto">
+          <Toolbox />
+        </div>
+      </div>
 
       {/* Zoom selector — top-right */}
       <div className="absolute right-2 top-2">
