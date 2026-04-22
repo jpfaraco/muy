@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAnimationStore, getFlatRenderIds } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
 import { DEFAULT_LAYER_PROPS } from '../../types/animation'
-import type { Point, Stroke } from '../../types/animation'
+import type { Point, CubicSegment, Stroke } from '../../types/animation'
+import { fitStroke } from '../../utils/strokeFitting'
 
 // ---------------------------------------------------------------------------
 // Image cache (shared with module scope so it survives re-renders)
@@ -44,7 +45,17 @@ function canvasToLayerLocal(
   return { x: rx / scale + pivotX, y: ry / scale + pivotY }
 }
 
-function pointsToPath(points: Point[]): string {
+function strokeToPath(stroke: Stroke): string {
+  const { origin, segments } = stroke
+  if (segments.length === 0) return ''
+  const parts = [`M ${origin.x} ${origin.y}`]
+  for (const s of segments) {
+    parts.push(`C ${s.c1.x} ${s.c1.y} ${s.c2.x} ${s.c2.y} ${s.end.x} ${s.end.y}`)
+  }
+  return parts.join(' ')
+}
+
+function rawPointsToPath(points: Point[]): string {
   if (points.length === 0) return ''
   const [first, ...rest] = points
   if (rest.length === 0) {
@@ -54,34 +65,46 @@ function pointsToPath(points: Point[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Destructive eraser
+// Destructive eraser — segment-level, never re-fits unaffected bezier segments
 // ---------------------------------------------------------------------------
 
-/**
- * Squared distance from point P to segment AB.
- * Used for swept-circle eraser so fast drags don't leave gaps.
- */
 function distToSegmentSq(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x
   const dy = b.y - a.y
   const lenSq = dx * dx + dy * dy
   if (lenSq === 0) {
-    const ex = p.x - a.x
-    const ey = p.y - a.y
+    const ex = p.x - a.x; const ey = p.y - a.y
     return ex * ex + ey * ey
   }
   const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq))
-  const cx = a.x + t * dx
-  const cy = a.y + t * dy
-  const ex = p.x - cx
-  const ey = p.y - cy
+  const cx = a.x + t * dx; const cy = a.y + t * dy
+  const ex = p.x - cx; const ey = p.y - cy
   return ex * ex + ey * ey
 }
 
+const ERASE_SEGMENT_SAMPLES = 16
+
+/** Returns true if any sampled point on the bezier segment lies within radiusSq of erase line (segA→segB). */
+function isSegmentHit(
+  anchor: Point,
+  seg: CubicSegment,
+  segA: Point,
+  segB: Point,
+  radiusSq: number,
+): boolean {
+  for (let i = 0; i <= ERASE_SEGMENT_SAMPLES; i++) {
+    const t = i / ERASE_SEGMENT_SAMPLES
+    const mt = 1 - t
+    const x = mt*mt*mt*anchor.x + 3*mt*mt*t*seg.c1.x + 3*mt*t*t*seg.c2.x + t*t*t*seg.end.x
+    const y = mt*mt*mt*anchor.y + 3*mt*mt*t*seg.c1.y + 3*mt*t*t*seg.c2.y + t*t*t*seg.end.y
+    if (distToSegmentSq({ x, y }, segA, segB) <= radiusSq) return true
+  }
+  return false
+}
+
 /**
- * Removes all points within `radius` of the segment (segA → segB) from every
- * stroke, splitting strokes into sub-segments where needed.
- * Pass segA === segB for a single-point (tap) erase.
+ * Erases by discarding hit bezier segments and splitting strokes at the gaps.
+ * Unaffected segments are returned as-is — no refitting, no distortion.
  */
 function eraseFromStrokes(
   strokes: Stroke[],
@@ -93,21 +116,32 @@ function eraseFromStrokes(
   const radiusSq = radius * radius
 
   for (const stroke of strokes) {
-    let current: Point[] = []
-
-    for (const pt of stroke.points) {
-      if (distToSegmentSq(pt, segA, segB) <= radiusSq) {
-        if (current.length > 0) {
-          result.push({ ...stroke, points: current })
-          current = []
-        }
-      } else {
-        current.push(pt)
-      }
+    // Single-dot stroke
+    if (stroke.segments.length === 0) {
+      if (distToSegmentSq(stroke.origin, segA, segB) > radiusSq) result.push(stroke)
+      continue
     }
 
-    if (current.length > 0) {
-      result.push({ ...stroke, points: current })
+    let runOrigin: Point | null = null
+    let runSegments: CubicSegment[] = []
+    let prevAnchor = stroke.origin
+
+    for (const seg of stroke.segments) {
+      if (isSegmentHit(prevAnchor, seg, segA, segB, radiusSq)) {
+        if (runOrigin !== null && runSegments.length > 0) {
+          result.push({ ...stroke, origin: runOrigin, segments: runSegments })
+        }
+        runOrigin = null
+        runSegments = []
+      } else {
+        if (runOrigin === null) runOrigin = prevAnchor
+        runSegments.push(seg)
+      }
+      prevAnchor = seg.end
+    }
+
+    if (runOrigin !== null && runSegments.length > 0) {
+      result.push({ ...stroke, origin: runOrigin, segments: runSegments })
     }
   }
 
@@ -118,55 +152,41 @@ function eraseFromStrokes(
 // Stroke rendering
 // ---------------------------------------------------------------------------
 
-function effectiveWidth(baseWidth: number, pressure: number | undefined): number {
-  if (pressure === undefined) return baseWidth
-  return Math.max(0.5, baseWidth * pressure)
-}
-
 function StrokeRenderer({ stroke }: { stroke: Stroke }) {
-  const { points, color, width } = stroke
-  if (points.length === 0) return null
+  const { origin, segments, color, width } = stroke
 
-  if (points.length === 1) {
-    const p = points[0]
-    const r = effectiveWidth(width, p.pressure) / 2
-    return <circle cx={p.x} cy={p.y} r={r} fill={color} />
-  }
-
-  const hasPressure = points.some((p) => p.pressure !== undefined)
-
-  if (!hasPressure) {
-    return (
-      <path
-        d={pointsToPath(points)}
-        stroke={color}
-        strokeWidth={width}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    )
+  // Single-point tap
+  if (segments.length === 0) {
+    return <circle cx={origin.x} cy={origin.y} r={width / 2} fill={color} />
   }
 
   return (
-    <>
-      {points.slice(0, -1).map((p, i) => {
-        const q = points[i + 1]
-        const w = (effectiveWidth(width, p.pressure) + effectiveWidth(width, q.pressure)) / 2
-        return (
-          <line
-            key={i}
-            x1={p.x}
-            y1={p.y}
-            x2={q.x}
-            y2={q.y}
-            stroke={color}
-            strokeWidth={w}
-            strokeLinecap="round"
-          />
-        )
-      })}
-    </>
+    <path
+      d={strokeToPath(stroke)}
+      stroke={color}
+      strokeWidth={width}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  )
+}
+
+// Live preview during drag — raw polyline, zero fitting latency
+function LivePreview({ points, color, width }: { points: Point[]; color: string; width: number }) {
+  if (points.length === 0) return null
+  if (points.length === 1) {
+    return <circle cx={points[0].x} cy={points[0].y} r={width / 2} fill={color} />
+  }
+  return (
+    <path
+      d={rawPointsToPath(points)}
+      stroke={color}
+      strokeWidth={width}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   )
 }
 
@@ -217,7 +237,10 @@ export function DrawingLayer() {
   const getLayerPropsAtFrame = useAnimationStore((s) => s.getLayerPropsAtFrame)
 
   const svgRef = useRef<SVGSVGElement>(null)
-  const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null)
+  // Raw points collected during drag — fitted to bezier on pointer up
+  const [livePoints, setLivePoints] = useState<Point[]>([])
+  const liveColorRef = useRef(drawColor)
+  const liveWidthRef = useRef(drawWidth)
   const targetLayerIdRef = useRef<string | null>(null)
   const moveDragRef = useRef<MoveDrag | null>(null)
   const isErasingRef = useRef(false)
@@ -326,6 +349,29 @@ export function DrawingLayer() {
     replaceLayerStrokes(targetId, updated)
   }
 
+  function toLayerLocal(canvasPos: Point, layerId: string): Point {
+    const props = useAnimationStore.getState().getLayerPropsAtFrame(
+      layerId,
+      useAnimationStore.getState().currentFrame,
+    )
+    const effectiveLayer = {
+      ...DEFAULT_LAYER_PROPS,
+      ...props,
+      ...(useInteractionStore.getState().liveLayerProps[layerId] ?? {}),
+    }
+    const layerDef = useAnimationStore.getState().doc.layers[layerId]
+    return canvasToLayerLocal(
+      canvasPos.x,
+      canvasPos.y,
+      effectiveLayer.x,
+      effectiveLayer.y,
+      effectiveLayer.rotation,
+      effectiveLayer.scale,
+      layerDef?.pivotX ?? 0,
+      layerDef?.pivotY ?? 0,
+    )
+  }
+
   // ── pointer handlers ──────────────────────────────────────────────────────
 
   const handlePointerDown = useCallback(
@@ -385,7 +431,7 @@ export function DrawingLayer() {
         e.currentTarget.setPointerCapture(e.pointerId)
         targetLayerIdRef.current = targetId
         isErasingRef.current = true
-        prevEraserCanvasPosRef.current = null  // reset so first call is a point, not a segment
+        prevEraserCanvasPosRef.current = null
         applyEraser(toCanvasCoords(e.clientX, e.clientY), targetId)
         return
       }
@@ -420,36 +466,12 @@ export function DrawingLayer() {
         holdLayer(targetId)
       }
       targetLayerIdRef.current = targetId
+      liveColorRef.current = drawColor
+      liveWidthRef.current = drawWidth
 
       const canvasPos = toCanvasCoords(e.clientX, e.clientY)
-      const props = useAnimationStore.getState().getLayerPropsAtFrame(
-        targetId,
-        useAnimationStore.getState().currentFrame,
-      )
-      const effectiveLayer = {
-        ...DEFAULT_LAYER_PROPS,
-        ...props,
-        ...(useInteractionStore.getState().liveLayerProps[targetId] ?? {}),
-      }
-      const layerDef = useAnimationStore.getState().doc.layers[targetId]
-      const localPt = canvasToLayerLocal(
-        canvasPos.x,
-        canvasPos.y,
-        effectiveLayer.x,
-        effectiveLayer.y,
-        effectiveLayer.rotation,
-        effectiveLayer.scale,
-        layerDef?.pivotX ?? 0,
-        layerDef?.pivotY ?? 0,
-      )
-
-      const pressure = e.pointerType === 'pen' ? e.pressure : undefined
-      setCurrentStroke({
-        tool: drawTool,
-        color: drawColor,
-        width: drawWidth,
-        points: [{ ...localPt, pressure }],
-      })
+      const localPt = toLayerLocal(canvasPos, targetId)
+      setLivePoints([localPt])
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isActive, heldVectorLayerId, createVectorLayer, holdLayer, toCanvasCoords, drawTool, drawColor, drawWidth, setLayerPivot, getEffectiveHeldLayers, getLayerPropsAtFrame, setLiveLayerProps, setCanvasDragActive],
@@ -537,39 +559,16 @@ export function DrawingLayer() {
       }
 
       // ── Pencil drag ──
-      if (!currentStroke) return
+      if (livePoints.length === 0) return
       const targetId = targetLayerIdRef.current
       if (!targetId) return
 
       const canvasPos = toCanvasCoords(e.clientX, e.clientY)
-      const props = useAnimationStore.getState().getLayerPropsAtFrame(
-        targetId,
-        useAnimationStore.getState().currentFrame,
-      )
-      const effectiveLayer = {
-        ...DEFAULT_LAYER_PROPS,
-        ...props,
-        ...(useInteractionStore.getState().liveLayerProps[targetId] ?? {}),
-      }
-      const pencilLayerDef = useAnimationStore.getState().doc.layers[targetId]
-      const localPt = canvasToLayerLocal(
-        canvasPos.x,
-        canvasPos.y,
-        effectiveLayer.x,
-        effectiveLayer.y,
-        effectiveLayer.rotation,
-        effectiveLayer.scale,
-        pencilLayerDef?.pivotX ?? 0,
-        pencilLayerDef?.pivotY ?? 0,
-      )
-
-      const pressure = e.pointerType === 'pen' ? e.pressure : undefined
-      setCurrentStroke((prev) =>
-        prev ? { ...prev, points: [...prev.points, { ...localPt, pressure }] } : null,
-      )
+      const localPt = toLayerLocal(canvasPos, targetId)
+      setLivePoints((prev) => [...prev, localPt])
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [drawTool, isActive, currentStroke, toCanvasCoords, setLiveLayerProps, setLayerPivot, getEffectiveHeldLayers, writeFrameValues, writeFrameValuesRange, layerListEntries],
+    [drawTool, isActive, livePoints, toCanvasCoords, setLiveLayerProps, setLayerPivot, getEffectiveHeldLayers, writeFrameValues, writeFrameValuesRange, layerListEntries],
   )
 
   const handlePointerUp = useCallback(() => {
@@ -612,12 +611,13 @@ export function DrawingLayer() {
 
     // ── Commit pencil stroke ──
     const targetId = targetLayerIdRef.current
-    if (currentStroke && targetId && currentStroke.points.length > 0) {
-      addStroke(targetId, currentStroke)
+    if (livePoints.length > 0 && targetId) {
+      const stroke = fitStroke(livePoints, 'pencil', liveColorRef.current, liveWidthRef.current)
+      if (stroke) addStroke(targetId, stroke)
     }
-    setCurrentStroke(null)
+    setLivePoints([])
     targetLayerIdRef.current = null
-  }, [currentStroke, addStroke, writeFrameValues, clearLiveLayerProps, setCanvasDragActive])
+  }, [livePoints, addStroke, writeFrameValues, clearLiveLayerProps, setCanvasDragActive])
 
   const handlePointerLeave = useCallback(() => {
     if (drawTool === 'eraser') setEraserPos(null)
@@ -685,14 +685,16 @@ export function DrawingLayer() {
         // ── Vector layer ──
         const committed = drawStrokes[layerId] ?? []
         const isTarget = targetLayerIdRef.current === layerId
-        const liveStroke = isTarget && currentStroke ? currentStroke : null
-        if (committed.length === 0 && !liveStroke) return null
+        const showLive = isTarget && livePoints.length > 0
+        if (committed.length === 0 && !showLive) return null
         return (
           <g key={layerId} transform={layerTransform(layerId)} opacity={getEffectiveProps(layerId).transparency ?? 1}>
             {committed.map((stroke, i) => (
               <StrokeRenderer key={i} stroke={stroke} />
             ))}
-            {liveStroke && <StrokeRenderer stroke={liveStroke} />}
+            {showLive && (
+              <LivePreview points={livePoints} color={liveColorRef.current} width={liveWidthRef.current} />
+            )}
           </g>
         )
       })}

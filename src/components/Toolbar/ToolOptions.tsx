@@ -159,12 +159,16 @@ function PivotOptions() {
     if (!targetLayerId) return
     const strokes = drawStrokes[targetLayerId] ?? []
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    const expand = (x: number, y: number) => {
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
     for (const stroke of strokes) {
-      for (const pt of stroke.points) {
-        if (pt.x < minX) minX = pt.x
-        if (pt.x > maxX) maxX = pt.x
-        if (pt.y < minY) minY = pt.y
-        if (pt.y > maxY) maxY = pt.y
+      expand(stroke.origin.x, stroke.origin.y)
+      for (const seg of stroke.segments) {
+        expand(seg.end.x, seg.end.y)
       }
     }
     if (!isFinite(minX)) return

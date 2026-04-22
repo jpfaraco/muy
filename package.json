@@ -21,10 +21,12 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fit-curve": "^0.2.0",
     "geist": "^1.7.0",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "simplify-js": "^1.2.4",
     "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.12"
   },

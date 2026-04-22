@@ -5,15 +5,23 @@ export type LayerType = 'image' | 'vector' | 'text'
 export interface Point {
   x: number
   y: number
-  /** Normalised pen pressure 0–1. Undefined for finger/mouse input. */
-  pressure?: number
+}
+
+/** One cubic bezier segment: previous anchor → c1 → c2 → end */
+export interface CubicSegment {
+  c1: Point
+  c2: Point
+  end: Point
 }
 
 export interface Stroke {
   tool: 'pencil' | 'eraser'
   color: string
   width: number
-  points: Point[]
+  /** Start anchor of the path */
+  origin: Point
+  /** Cubic bezier segments following the origin */
+  segments: CubicSegment[]
 }
 
 export interface ImageAsset {
