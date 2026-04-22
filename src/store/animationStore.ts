@@ -108,7 +108,7 @@ export const useAnimationStore = create<AnimationStore>((set, get) => ({
 
   getLayerPropsAtFrame: (layerId, frame) => {
     const { doc } = get()
-    const keys: PropertyKey[] = ['x', 'y', 'rotation', 'scale', 'transparency']
+    const keys: PropertyKey[] = ['x', 'y', 'rotation', 'scale', 'transparency', 'progress']
     const result: Partial<LayerProps> = {}
     for (const key of keys) {
       for (let i = frame; i >= 0; i--) {

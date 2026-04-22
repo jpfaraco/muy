@@ -1,4 +1,4 @@
-export type PropertyKey = 'x' | 'y' | 'rotation' | 'scale' | 'transparency'
+export type PropertyKey = 'x' | 'y' | 'rotation' | 'scale' | 'transparency' | 'progress'
 
 export type LayerType = 'image' | 'vector' | 'text'
 
@@ -53,6 +53,7 @@ export interface Layer {
  * rotation is degrees (0–360).
  * scale is a multiplier (1.0 = 100%).
  * transparency is 0 (invisible) to 1 (fully opaque).
+ * progress is 0 (nothing drawn) to 1 (fully drawn) — vector layers only.
  */
 export type LayerProps = Record<PropertyKey, number>
 
@@ -83,4 +84,5 @@ export const DEFAULT_LAYER_PROPS: LayerProps = {
   rotation: 0,
   scale: 1,
   transparency: 1,
+  progress: 1,
 }

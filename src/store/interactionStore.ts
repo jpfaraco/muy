@@ -274,6 +274,8 @@ export function propertyToWidgetType(property: PropertyKey): WidgetType {
       return 'slider-v'
     case 'rotation':
       return 'rotation'
+    case 'progress':
+      return 'slider-h'
     default:
       return 'slider-h'
   }

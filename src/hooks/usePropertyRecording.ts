@@ -6,6 +6,7 @@ import type { PropertyKey } from '../types/animation'
 const PROPERTY_BOUNDS: Partial<Record<PropertyKey, [number, number]>> = {
   transparency: [0, 1],
   scale: [0, Infinity],
+  progress: [0, 1],
 }
 
 /**

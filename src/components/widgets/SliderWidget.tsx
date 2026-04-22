@@ -21,6 +21,7 @@ function sensitivityForProperty(property: PropertyKey): number {
     case 'y': return 1
     case 'scale': return 0.01
     case 'transparency': return 0.005
+    case 'progress': return 1 / TRACK_MAJOR
     default: return 1
   }
 }

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
-import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend } from 'lucide-react'
+import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Route } from 'lucide-react'
 import { useAnimationStore } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
 import { PropertyButton } from '../LeftPanel/PropertyButton'
@@ -12,6 +12,7 @@ const PROPERTIES: Array<{ key: PropertyKey; label: string; icon: React.ElementTy
   { key: 'rotation',     label: 'Rotate',  icon: RotateCw       },
   { key: 'scale',        label: 'Scale',   icon: Scaling        },
   { key: 'transparency', label: 'Alpha',   icon: Blend          },
+  { key: 'progress',     label: 'Path',    icon: Route          },
 ]
 
 function StrokePreview({ width, color }: { width: number; color: string }) {

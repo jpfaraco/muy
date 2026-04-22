@@ -4,6 +4,7 @@ import { useInteractionStore } from '../../store/interactionStore'
 import { DEFAULT_LAYER_PROPS } from '../../types/animation'
 import type { Point, CubicSegment, Stroke } from '../../types/animation'
 import { fitStroke } from '../../utils/strokeFitting'
+import { trimStrokes } from '../../utils/strokeTrim'
 
 // ---------------------------------------------------------------------------
 // Image cache (shared with module scope so it survives re-renders)
@@ -687,9 +688,12 @@ export function DrawingLayer() {
         const isTarget = targetLayerIdRef.current === layerId
         const showLive = isTarget && livePoints.length > 0
         if (committed.length === 0 && !showLive) return null
+        const effectiveProps = getEffectiveProps(layerId)
+        const progress = effectiveProps.progress ?? 1
+        const visible = trimStrokes(committed, progress)
         return (
-          <g key={layerId} transform={layerTransform(layerId)} opacity={getEffectiveProps(layerId).transparency ?? 1}>
-            {committed.map((stroke, i) => (
+          <g key={layerId} transform={layerTransform(layerId)} opacity={effectiveProps.transparency ?? 1}>
+            {visible.map((stroke, i) => (
               <StrokeRenderer key={i} stroke={stroke} />
             ))}
             {showLive && (
