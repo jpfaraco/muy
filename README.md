@@ -8,17 +8,17 @@ Instead of keyframes and tweens, you _perform_ animations in real time: select a
 
 ```bash
 npm install
-npm run dev       # http://localhost:5173
+npm run dev -- --host       # http://localhost:5173
 ```
 
 ## Commands
 
 ```bash
-npm run dev       # Dev server with HMR
-npm run build     # Type-check + production bundle
-npm run preview   # Preview production build locally
-npm run lint      # ESLint
-npm run test      # Vitest (single run)
+npm run dev -- --host       # Dev server with HMR
+npm run build               # Type-check + production bundle
+npm run preview             # Preview production build locally
+npm run lint                # ESLint
+npm run test                # Vitest (single run)
 npm run test:watch
 ```
 
