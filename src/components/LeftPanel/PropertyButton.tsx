@@ -87,10 +87,10 @@ export function PropertyButton({ property, label, icon: Icon }: Props) {
   )
 
   return (
-    <div className={cn('flex flex-col items-center gap-1', hasActiveWidget && 'pointer-events-none opacity-30')}>
+    <div className={cn('flex w-11 flex-col items-center gap-1', hasActiveWidget && 'pointer-events-none opacity-30')}>
       <div
         className={cn(
-          'flex h-10 w-10 cursor-grab items-center justify-center rounded-lg border border-sidebar-border shadow-sm transition-colors active:cursor-grabbing',
+          'flex h-8 w-8 cursor-grab items-center justify-center rounded-md border border-border p-2 shadow-sm transition-colors active:cursor-grabbing',
           isDragging ? 'bg-accent' : 'hover:bg-accent/50',
         )}
         onPointerDown={handlePointerDown}

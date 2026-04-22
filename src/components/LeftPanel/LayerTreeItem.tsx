@@ -183,7 +183,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         {/* Kebab menu */}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className={cn("h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100", menuOpen && "opacity-100")} onPointerDown={(e) => e.stopPropagation()} aria-label="Layer options">
+            <Button variant="ghost" size="icon-xs" className={cn("text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100", menuOpen && "opacity-100")} onPointerDown={(e) => e.stopPropagation()} aria-label="Layer options">
               <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>

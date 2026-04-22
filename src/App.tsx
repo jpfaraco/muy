@@ -5,6 +5,7 @@ import { initialDoc } from './assets/sample/initialDoc'
 import { Header } from './components/Header'
 import { LeftPanel } from './components/LeftPanel/LeftPanel'
 import { CanvasArea } from './components/Canvas/CanvasArea'
+import { Timeline } from './components/Timeline/Timeline'
 
 export default function App() {
   const setDoc = useAnimationStore((s) => s.setDoc)
@@ -22,6 +23,7 @@ export default function App() {
         <LeftPanel />
         <CanvasArea />
       </div>
+      <Timeline />
     </div>
   )
 }

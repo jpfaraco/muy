@@ -3,6 +3,11 @@ import { useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
 import type { PropertyKey } from '../types/animation'
 
+const PROPERTY_BOUNDS: Partial<Record<PropertyKey, [number, number]>> = {
+  transparency: [0, 1],
+  scale: [0, Infinity],
+}
+
 /**
  * Returns functions to record property values into the animation frames.
  *
@@ -89,7 +94,9 @@ export function usePropertyRecording(property: PropertyKey) {
         const entry = layerListEntries?.find((e) => e.layerId === layerId)
         const factor = entry ? entry.sensitivity / 100 : 1
         const prev = liveValuesRef.current[layerId] ?? 0
-        const next = prev + delta * factor
+        const raw = prev + delta * factor
+        const bounds = PROPERTY_BOUNDS[property]
+        const next = bounds ? Math.max(bounds[0], Math.min(bounds[1], raw)) : raw
         liveValuesRef.current[layerId] = next
         updates.push({ layerId, property, value: next })
       }
