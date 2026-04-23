@@ -10,6 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { cn } from '@/lib/utils'
+import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
+import { getFlatRenderIds, useAnimationStore } from '../store/animationStore'
+import { useInteractionStore } from '../store/interactionStore'
 
 type MenuItem = { label: string; onClick?: () => void } | { separator: true }
 
@@ -48,6 +51,10 @@ function MenuButton({ label, items }: MenuDef) {
 
 export function Header() {
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
+  const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
+  const fit = useCanvasViewStore((s) => s.fit)
+  const doc = useAnimationStore((s) => s.doc)
+  const setHeldLayers = useInteractionStore((s) => s.setHeldLayers)
 
   const menus: MenuDef[] = [
     {
@@ -67,15 +74,15 @@ export function Header() {
         { label: 'Undo' },
         { label: 'Redo' },
         { separator: true },
-        { label: 'Select all' },
+        { label: 'Select all', onClick: () => setHeldLayers(getFlatRenderIds(doc)) },
       ],
     },
     {
       label: 'View',
       items: [
-        { label: 'Zoom in' },
-        { label: 'Zoom out' },
-        { label: 'Fit to screen' },
+        { label: 'Zoom in', onClick: () => zoomByFactor(CANVAS_ZOOM_STEP) },
+        { label: 'Zoom out', onClick: () => zoomByFactor(1 / CANVAS_ZOOM_STEP) },
+        { label: 'Fit to screen', onClick: fit },
       ],
     },
   ]

@@ -32,6 +32,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const layers = useAnimationStore((s) => s.doc.layers);
   const { deleteLayer, renameLayer } = useAnimationStore();
   const heldLayerIds = useInteractionStore((s) => s.heldLayerIds);
+  const selectedLayerIds = useInteractionStore((s) => s.selectedLayerIds);
   const reorderDrag = useInteractionStore((s) => s.reorderDrag);
   const { holdLayer, releaseLayer, releaseAllLayers, addLayerToList, layerListEntries, startReorder } = useInteractionStore();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -43,6 +44,9 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const wasHeldRef = useRef(false);
 
   const isHeld = layer?.type === "group" ? getDescendantLeafIds(layerId, layers).some((id) => heldLayerIds.includes(id)) : heldLayerIds.includes(layerId);
+  const isSelected = layer?.type === "group"
+    ? getDescendantLeafIds(layerId, layers).some((id) => selectedLayerIds.includes(id))
+    : selectedLayerIds.includes(layerId);
   const isInList = layer?.type === "layer" && (layerListEntries?.some((e) => e.layerId === layerId) ?? false);
   const isDragging = reorderDrag?.draggingLayerIds.includes(layerId) ?? false;
 
@@ -163,7 +167,16 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         data-layer-id={layerId}
         data-parent-id={layer.parentId ?? ""}
         data-depth={depth}
-        className={cn("group flex h-10 items-center gap-2 pr-2 text-sm transition-colors", isHeld ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/40", isInList ? "bg-emerald-950/60 text-emerald-300" : "", isDragging ? "opacity-40" : "")}
+        className={cn(
+          "group flex h-10 items-center gap-2 pr-2 text-sm transition-colors",
+          isHeld
+            ? "bg-accent text-foreground"
+            : isSelected
+              ? "bg-accent/60 text-foreground"
+              : "text-foreground hover:bg-accent/40",
+          isInList ? "bg-emerald-950/60 text-emerald-300" : "",
+          isDragging ? "opacity-40" : "",
+        )}
         style={{ paddingLeft }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

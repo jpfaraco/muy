@@ -5,6 +5,7 @@ describe('interactionStore', () => {
   beforeEach(() => {
     useInteractionStore.setState({
       heldLayerIds: [],
+      selectedLayerIds: [],
       layerListEntries: null,
       floatingWidgets: [],
       canvasDragActive: false,
@@ -14,6 +15,12 @@ describe('interactionStore', () => {
   })
 
   describe('layer holding', () => {
+    it('setHeldLayers populates both held and selected ids', () => {
+      useInteractionStore.getState().setHeldLayers(['layer-a', 'layer-b', 'layer-a'])
+      expect(useInteractionStore.getState().heldLayerIds).toEqual(['layer-a', 'layer-b'])
+      expect(useInteractionStore.getState().selectedLayerIds).toEqual(['layer-a', 'layer-b'])
+    })
+
     it('holdLayer adds a layer id', () => {
       useInteractionStore.getState().holdLayer('layer-a')
       expect(useInteractionStore.getState().heldLayerIds).toContain('layer-a')

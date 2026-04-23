@@ -44,6 +44,7 @@ interface InteractionActions {
   setDrawColor: (color: string) => void
   setPencilWidth: (width: number) => void
   setEraserWidth: (width: number) => void
+  setHeldLayers: (layerIds: string[]) => void
   holdLayer: (layerId: string) => void
   releaseLayer: (layerId: string) => void
   releaseAllLayers: () => void
@@ -121,6 +122,13 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       eraserWidth,
       ...(state.activeTool === 'eraser' ? { drawWidth: eraserWidth } : {}),
     })),
+  setHeldLayers: (layerIds) => {
+    const deduped = Array.from(new Set(layerIds))
+    set({
+      heldLayerIds: deduped,
+      selectedLayerIds: deduped,
+    })
+  },
 
   holdLayer: (layerId) =>
     set((state) => {

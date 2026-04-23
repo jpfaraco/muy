@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-
-const MIN_ZOOM = 0.1
-const MAX_ZOOM = 8
+import { useRef, useEffect, useCallback } from 'react'
+import {
+  MAX_CANVAS_ZOOM,
+  MIN_CANVAS_ZOOM,
+  useCanvasViewStore,
+} from '../store/canvasViewStore'
 
 interface Transform {
   zoom: number
@@ -28,7 +30,14 @@ export interface CanvasTransform {
 }
 
 export function useCanvasTransform(canvasWidth: number, canvasHeight: number): CanvasTransform {
-  const [transform, setTransform] = useState<Transform>({ zoom: 1, panX: 0, panY: 0 })
+  const zoom = useCanvasViewStore((s) => s.zoom)
+  const panX = useCanvasViewStore((s) => s.panX)
+  const panY = useCanvasViewStore((s) => s.panY)
+  const setTransform = useCanvasViewStore((s) => s.setTransform)
+  const setZoomPreset = useCanvasViewStore((s) => s.setZoomPreset)
+  const fit = useCanvasViewStore((s) => s.fit)
+  const setFitHandler = useCanvasViewStore((s) => s.setFitHandler)
+  const transform: Transform = { zoom, panX, panY }
   const transformRef = useRef(transform)
   transformRef.current = transform
   const containerRef = useRef<HTMLDivElement>(null)
@@ -54,21 +63,19 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
 
     if (e.ctrlKey) {
       const factor = Math.exp(-e.deltaY * 0.01)
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor))
+      const newZoom = Math.min(MAX_CANVAS_ZOOM, Math.max(MIN_CANVAS_ZOOM, zoom * factor))
       const r = newZoom / zoom
       const next = {
         zoom: newZoom,
         panX: cx * (1 - r) + panX * r,
         panY: cy * (1 - r) + panY * r,
       }
-      transformRef.current = next
       setTransform(next)
     } else {
       const next = { zoom, panX: panX - e.deltaX, panY: panY - e.deltaY }
-      transformRef.current = next
       setTransform(next)
     }
-  }, [])
+  }, [setTransform])
 
   const handlePointerDown = useCallback((e: PointerEvent) => {
     if (shouldIgnorePointer(e)) return
@@ -104,16 +111,15 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
     const { startDistance, startZoom, startMidX, startMidY, startPanX, startPanY } = gestureRef.current
 
     const scaleRatio = dist / startDistance
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, startZoom * scaleRatio))
+    const newZoom = Math.min(MAX_CANVAS_ZOOM, Math.max(MIN_CANVAS_ZOOM, startZoom * scaleRatio))
     const r = newZoom / startZoom
 
     const newPanX = startPanX * r + (midX - startMidX)
     const newPanY = startPanY * r + (midY - startMidY)
 
     const next = { zoom: newZoom, panX: newPanX, panY: newPanY }
-    transformRef.current = next
     setTransform(next)
-  }, [])
+  }, [setTransform])
 
   const handlePointerUp = useCallback((e: PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
@@ -144,33 +150,31 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
     }
   }, [handleWheel, handlePointerDown, handlePointerMove, handlePointerUp, clearGestureState])
 
-  const setZoomPreset = useCallback((zoom: number) => {
-    const next = { zoom, panX: 0, panY: 0 }
-    transformRef.current = next
-    setTransform(next)
-  }, [])
-
-  const fit = useCallback(() => {
+  const fitToViewport = useCallback(() => {
     const el = containerRef.current
     if (!el) return
     const padding = 48
     const fitZoom = Math.min(
       (el.clientWidth - padding) / canvasWidth,
       (el.clientHeight - padding) / canvasHeight,
-      MAX_ZOOM,
+      MAX_CANVAS_ZOOM,
     )
-    const next = { zoom: Math.max(MIN_ZOOM, fitZoom), panX: 0, panY: 0 }
-    transformRef.current = next
+    const next = { zoom: Math.max(MIN_CANVAS_ZOOM, fitZoom), panX: 0, panY: 0 }
     setTransform(next)
   }, [canvasWidth, canvasHeight])
+
+  useEffect(() => {
+    setFitHandler(fitToViewport)
+    return () => setFitHandler(null)
+  }, [fitToViewport, setFitHandler])
 
   // Initialize to fit zoom on first mount
   useEffect(() => {
     if (!hasFittedRef.current) {
       hasFittedRef.current = true
-      fit()
+      fitToViewport()
     }
-  }, [fit])
+  }, [fitToViewport])
 
-  return { ...transform, containerRef, setZoomPreset, fit }
+  return { zoom, panX, panY, containerRef, setZoomPreset, fit }
 }
