@@ -325,6 +325,7 @@ export function DrawingLayer() {
 
   /** Apply eraser sweep from prevEraserCanvasPosRef → canvasPos against the given layer's strokes. */
   function applyEraser(canvasPos: Point, targetId: string) {
+    const currentDrawWidth = useInteractionStore.getState().drawWidth
     const props = useAnimationStore.getState().getLayerPropsAtFrame(
       targetId,
       useAnimationStore.getState().currentFrame,
@@ -344,7 +345,7 @@ export function DrawingLayer() {
     const localA = toLocal(prevEraserCanvasPosRef.current ?? canvasPos)
     prevEraserCanvasPosRef.current = canvasPos
 
-    const radius = (drawWidth / 2) / effectiveLayer.scale
+    const radius = (currentDrawWidth / 2) / effectiveLayer.scale
     const existing = useAnimationStore.getState().drawStrokes[targetId] ?? []
     const updated = eraseFromStrokes(existing, localA, localB, radius)
     replaceLayerStrokes(targetId, updated)
@@ -706,15 +707,60 @@ export function DrawingLayer() {
 
       {/* Eraser cursor ring */}
       {drawTool === 'eraser' && eraserPos && (
-        <circle
-          cx={eraserPos.x}
-          cy={eraserPos.y}
-          r={drawWidth / 2}
-          fill="none"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth={1.5}
-          style={{ pointerEvents: 'none' }}
-        />
+        <g style={{ pointerEvents: 'none' }}>
+          <circle
+            cx={eraserPos.x}
+            cy={eraserPos.y}
+            r={drawWidth / 2}
+            fill="none"
+            stroke="rgba(0,0,0,0.85)"
+            strokeWidth={3}
+          />
+          <circle
+            cx={eraserPos.x}
+            cy={eraserPos.y}
+            r={drawWidth / 2}
+            fill="none"
+            stroke="rgba(255,255,255,0.95)"
+            strokeWidth={1.5}
+          />
+          <line
+            x1={eraserPos.x - 4}
+            y1={eraserPos.y}
+            x2={eraserPos.x + 4}
+            y2={eraserPos.y}
+            stroke="rgba(0,0,0,0.85)"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+          <line
+            x1={eraserPos.x}
+            y1={eraserPos.y - 4}
+            x2={eraserPos.x}
+            y2={eraserPos.y + 4}
+            stroke="rgba(0,0,0,0.85)"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+          <line
+            x1={eraserPos.x - 4}
+            y1={eraserPos.y}
+            x2={eraserPos.x + 4}
+            y2={eraserPos.y}
+            stroke="rgba(255,255,255,0.95)"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+          />
+          <line
+            x1={eraserPos.x}
+            y1={eraserPos.y - 4}
+            x2={eraserPos.x}
+            y2={eraserPos.y + 4}
+            stroke="rgba(255,255,255,0.95)"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+          />
+        </g>
       )}
 
       {/* Pivot crosshair — shown when pivot tool is active and any layer is held */}

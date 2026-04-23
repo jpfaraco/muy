@@ -11,6 +11,7 @@ Key constraints:
 - iPad + touch first (Pointer Events API); desktop mouse is secondary
 - No export, no persistence — playback only, session only
 - Sample assets bundled (SVG placeholders: background, midground, foreground, trunk, leaf×2, bunny×3 poses)
+- Prefer Base UI for overlay controls that must work with Apple Pencil on iPad. In this app, Base UI fixed Pencil interaction for dropdown menus and dialogs; the equivalent Radix UI versions did not. `Popover` remains safe to use.
 
 ## Commands
 
@@ -93,7 +94,7 @@ Located in `src/components/widgets/`. Each widget type (`SliderWidget`, `Rotatio
 | Framework | React 19, TypeScript 6                            |
 | Build     | Vite 8 + `@vitejs/plugin-react` (Oxc transformer) |
 | State     | Zustand 5                                         |
-| Styling   | Tailwind CSS v4, shadcn/ui, Radix UI primitives   |
+| Styling   | Tailwind CSS v4, shadcn/ui, Base UI + Radix primitives |
 | Canvas    | HTML5 Canvas 2D, Pointer Events API               |
 | Icons     | Lucide React                                      |
 | Testing   | Vitest 4, @testing-library/react, jsdom           |

@@ -36,7 +36,7 @@ function MenuButton({ label, items }: MenuDef) {
           'separator' in item ? (
             <DropdownMenuSeparator key={i} />
           ) : (
-            <DropdownMenuItem key={item.label} onClick={item.onClick}>
+            <DropdownMenuItem key={item.label} onSelect={item.onClick}>
               {item.label}
             </DropdownMenuItem>
           ),

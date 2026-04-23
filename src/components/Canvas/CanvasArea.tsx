@@ -64,7 +64,7 @@ export function CanvasArea() {
       <WidgetLayer />
 
       {/* Floating toolbar — bottom-center */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+      <div data-canvas-gesture-ignore className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
         <ToolOptions />
         <div className="pointer-events-auto">
           <Toolbox />
@@ -72,7 +72,7 @@ export function CanvasArea() {
       </div>
 
       {/* Zoom selector — top-right */}
-      <div className="absolute right-2 top-2">
+      <div data-canvas-gesture-ignore className="absolute right-2 top-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-9 gap-1.5 bg-card px-4 text-foreground shadow-md">
@@ -82,12 +82,12 @@ export function CanvasArea() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {ZOOM_PRESETS.map((level) => (
-              <DropdownMenuItem key={level} className={zoom === level ? "bg-accent" : ""} onClick={() => setZoomPreset(level)}>
+              <DropdownMenuItem key={level} className={zoom === level ? "bg-accent" : ""} onSelect={() => setZoomPreset(level)}>
                 {Math.round(level * 100)}%
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={fit}>Fit</DropdownMenuItem>
+            <DropdownMenuItem onSelect={fit}>Fit</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

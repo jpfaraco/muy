@@ -9,6 +9,7 @@ describe('interactionStore', () => {
       floatingWidgets: [],
       canvasDragActive: false,
       liveLayerProps: {},
+      drawColor: '#000000',
     })
   })
 
@@ -41,6 +42,10 @@ describe('interactionStore', () => {
   })
 
   describe('widgets', () => {
+    it('defaults draw color to black', () => {
+      expect(useInteractionStore.getState().drawColor).toBe('#000000')
+    })
+
     it('addWidget returns an id and appends a widget', () => {
       const id = useInteractionStore.getState().addWidget({
         type: 'slider-h',

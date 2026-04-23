@@ -176,9 +176,32 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+button,
+[role="button"],
+[role="menu"],
+[role="menuitem"],
+[role="menuitemcheckbox"],
+[role="menuitemradio"],
+[role="dialog"],
+[role="listbox"],
+[role="option"],
+[data-slot="dialog-overlay"],
+[data-slot="dialog-content"],
+input,
+select,
+textarea,
+a {
+  touch-action: manipulation;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 body {

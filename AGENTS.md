@@ -4,6 +4,8 @@ Detailed description of Bret's demo: `_description/description.md` and attached 
 
 **Tech stack:** React + TypeScript, Vite, Zustand, Tailwind CSS v4, HTML5 Canvas, Pointer Events API
 
+**UI primitives note:** Prefer Base UI primitives for overlay controls that must work with Apple Pencil on iPad. In this codebase, Base UI fixed Pencil interaction for dropdown menus and dialogs, while the equivalent Radix UI primitives did not. `Popover` is still fine as a Radix primitive.
+
 **Key constraints:**
 
 - iPad + touch first (Pointer Events); desktop mouse is secondary

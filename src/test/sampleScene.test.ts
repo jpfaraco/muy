@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { SAMPLE_IMAGE_ASSETS, CANVAS_WIDTH, CANVAS_HEIGHT } from '../assets/sample/sampleScene'
 import { initialDoc } from '../assets/sample/initialDoc'
-import { getFlatRenderIds } from '../store/animationStore'
 
 describe('sampleScene', () => {
   it('all assets have at least one URL', () => {
@@ -33,43 +32,16 @@ describe('initialDoc', () => {
     expect(initialDoc.frames).toHaveLength(240)
   })
 
-  it('all layerIds reference valid layers', () => {
-    for (const id of initialDoc.layerIds) {
-      expect(initialDoc.layers[id]).toBeDefined()
-    }
+  it('starts with a white canvas and no seeded content', () => {
+    expect(initialDoc.backgroundColor).toBe('#ffffff')
+    expect(initialDoc.layerIds).toEqual([])
+    expect(initialDoc.layers).toEqual({})
+    expect(initialDoc.imageAssets).toEqual({})
   })
 
-  it('all leaf layers reference valid image assets', () => {
-    for (const layer of Object.values(initialDoc.layers)) {
-      if (layer.type === 'layer' && layer.imageAssetId) {
-        expect(initialDoc.imageAssets[layer.imageAssetId]).toBeDefined()
-      }
-    }
-  })
-
-  it('frame 0 has base props for each render layer', () => {
-    const renderLayerIds = getFlatRenderIds(initialDoc)
-    const frame0 = initialDoc.frames[0]
-    for (const layerId of renderLayerIds) {
-      expect(frame0[layerId]).toBeDefined()
-      expect(typeof frame0[layerId].x).toBe('number')
-      expect(typeof frame0[layerId].y).toBe('number')
-    }
-  })
-
-  it('frames after frame 0 start empty (keyframes written on demand)', () => {
-    for (const frame of initialDoc.frames.slice(1)) {
+  it('all frames start empty until the user records data', () => {
+    for (const frame of initialDoc.frames) {
       expect(Object.keys(frame)).toHaveLength(0)
-    }
-  })
-
-  it('groups reference valid child layer ids', () => {
-    for (const layer of Object.values(initialDoc.layers)) {
-      if (layer.type === 'group' && layer.childIds) {
-        for (const childId of layer.childIds) {
-          expect(initialDoc.layers[childId]).toBeDefined()
-        }
-      }
     }
   })
 })

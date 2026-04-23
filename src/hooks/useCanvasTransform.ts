@@ -37,6 +37,12 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   const gestureRef = useRef<GestureState | null>(null)
   const hasFittedRef = useRef(false)
 
+  const shouldIgnorePointer = useCallback((e: PointerEvent) => {
+    const target = e.target
+    if (!(target instanceof Element)) return false
+    return Boolean(target.closest('[data-canvas-gesture-ignore]'))
+  }, [])
+
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault()
     const el = containerRef.current
@@ -65,6 +71,7 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   }, [])
 
   const handlePointerDown = useCallback((e: PointerEvent) => {
+    if (shouldIgnorePointer(e)) return
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (activePointersRef.current.size === 2) {
       const [p1, p2] = [...activePointersRef.current.values()]
@@ -79,7 +86,7 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
         startPanY: panY,
       }
     }
-  }, [])
+  }, [shouldIgnorePointer])
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!activePointersRef.current.has(e.pointerId)) return
@@ -113,22 +120,29 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
     if (activePointersRef.current.size < 2) gestureRef.current = null
   }, [])
 
+  const clearGestureState = useCallback(() => {
+    activePointersRef.current.clear()
+    gestureRef.current = null
+  }, [])
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     el.addEventListener('wheel', handleWheel, { passive: false })
     el.addEventListener('pointerdown', handlePointerDown, { capture: true })
     el.addEventListener('pointermove', handlePointerMove, { capture: true })
-    el.addEventListener('pointerup', handlePointerUp, { capture: true })
-    el.addEventListener('pointercancel', handlePointerUp, { capture: true })
+    window.addEventListener('pointerup', handlePointerUp, { capture: true })
+    window.addEventListener('pointercancel', handlePointerUp, { capture: true })
+    window.addEventListener('blur', clearGestureState)
     return () => {
       el.removeEventListener('wheel', handleWheel)
       el.removeEventListener('pointerdown', handlePointerDown, { capture: true })
       el.removeEventListener('pointermove', handlePointerMove, { capture: true })
-      el.removeEventListener('pointerup', handlePointerUp, { capture: true })
-      el.removeEventListener('pointercancel', handlePointerUp, { capture: true })
+      window.removeEventListener('pointerup', handlePointerUp, { capture: true })
+      window.removeEventListener('pointercancel', handlePointerUp, { capture: true })
+      window.removeEventListener('blur', clearGestureState)
     }
-  }, [handleWheel, handlePointerDown, handlePointerMove, handlePointerUp])
+  }, [handleWheel, handlePointerDown, handlePointerMove, handlePointerUp, clearGestureState])
 
   const setZoomPreset = useCallback((zoom: number) => {
     const next = { zoom, panX: 0, panY: 0 }

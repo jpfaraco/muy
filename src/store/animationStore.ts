@@ -63,7 +63,7 @@ export const useAnimationStore = create<AnimationStore>((set, get) => ({
     frameCount: 240,
     canvasWidth: 1920,
     canvasHeight: 1080,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#ffffff',
     layerIds: [],
     layers: {},
     imageAssets: {},

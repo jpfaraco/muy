@@ -73,7 +73,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   activeTool: 'select',
   mode: 'animate',
   drawTool: 'pencil',
-  drawColor: '#ffffff',
+  drawColor: '#000000',
   pencilWidth: 16,
   eraserWidth: 32,
   drawWidth: 16,
