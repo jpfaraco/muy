@@ -30,7 +30,6 @@ const CANCEL_DIST_SQ = 100; // 10px radius squared
 
 export function LayerTreeItem({ layerId, depth }: Props) {
   const layer = useAnimationStore((s) => s.doc.layers[layerId]);
-  const layers = useAnimationStore((s) => s.doc.layers);
   const { deleteLayer, renameLayer, groupLayer, removeFromGroup, ungroupLayers } = useAnimationStore();
   const heldLayerIds = useInteractionStore((s) => s.heldLayerIds);
   const heldGroupIds = useInteractionStore((s) => s.heldGroupIds);
@@ -44,9 +43,6 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStartRef = useRef<{ x: number; y: number } | null>(null);
   const wasHeldRef = useRef(false);
-  // Tracks the item whose long-press initiates a reorder (the group itself, not its leaves)
-  const reorderTargetRef = useRef<string | null>(null);
-
   // Groups are only highlighted when directly tapped, not when a child is selected
   const isHeld = layer?.type === "group" ? heldGroupIds.includes(layerId) : heldLayerIds.includes(layerId);
   const isSelected = layer?.type === "group" ? heldGroupIds.includes(layerId) : selectedLayerIds.includes(layerId);
