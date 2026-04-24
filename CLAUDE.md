@@ -19,7 +19,7 @@ Key constraints:
 npm run dev        # Vite dev server on port 5173
 npm run build      # tsc -b && vite build (produces ~218 KB JS bundle)
 npm run lint       # ESLint
-npm run test       # Vitest (36 tests, single run)
+npm run test       # Vitest (64 tests, single run)
 npm run test:watch # Vitest watch mode
 npm run preview    # Local production preview on port 4173
 ```
@@ -42,7 +42,7 @@ npx vitest run src/test/animationStore.test.ts
 
 **`src/store/interactionStore.ts`** — ephemeral UI interaction state
 
-- `heldLayerIds`: layers currently held (being recorded)
+- `heldLayerIds`: currently selected layer IDs (tap to toggle in the Layers panel)
 - `floatingWidgets`: active property widgets on canvas
 - `layerListEntries`: per-layer sensitivity % for recording
 - `liveLayerProps`: property overrides applied during active gesture (not yet committed to frames)
@@ -53,16 +53,21 @@ All store actions **must return new objects/arrays** — never mutate in place. 
 
 ```
 App
-├── Header (menu bar: File, Edit, View)
+├── Header (menu bar: File, Edit, View; help button)
 ├── LeftPanel
-│   ├── LayersPanel (layer tree + import)
+│   ├── LayersPanel (layer tree + import; tap to toggle layer selection)
 │   └── PropertiesPanel (property buttons that spawn widgets)
 ├── CanvasArea
 │   ├── AnimationCanvas (main render canvas — reads from animationStore + liveLayerProps)
-│   ├── DrawingLayer (vector strokes, pencil/eraser tools — 28 KB, complex coordinate math)
+│   ├── DrawingLayer (vector strokes, pencil/eraser tools — complex coordinate math)
 │   └── WidgetLayer (floating property widgets overlay)
-└── Timeline (playback controls, mode tabs: Draw/Animate, filmstrip)
+└── Timeline (playback controls + filmstrip)
+    └── Toolbox (persistent toolbar: Select, Undo, Redo, Pencil, Eraser, Pivot, Animate)
 ```
+
+**Active tool** (`ActiveTool = 'select' | 'pencil' | 'eraser' | 'pivot' | 'animate'`) lives in `interactionStore`. Selecting Animate reveals 6 property buttons (Move X, Move Y, Rotate, Scale, Alpha, Path) above the toolbar. In Select mode, dragging the canvas moves all selected layers. In Pencil/Eraser/Pivot modes, the canvas handles drawing/erasing/pivot interactions instead.
+
+**Undo/redo** uses `zundo` temporal middleware wrapping `animationStore`. Only `doc` and `drawStrokes` are partialized; playback state (`currentFrame`, `isPlaying`) is excluded. Each gesture (stroke, erase, animate drag, layer move) is coalesced into one history entry via `captureHistoryEntry()` + `pause()`/`resume()`. Keyboard: ⌘Z / ⌘⇧Z; also available as toolbar buttons and Edit menu items.
 
 ### Core hooks
 

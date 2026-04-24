@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Circle } from 'lucide-react'
+import { ChevronDown, Circle, CircleHelp } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
+import { HelpDialog } from './HelpDialog'
 import { cn } from '@/lib/utils'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
 import { getFlatRenderIds, useAnimationHistory, useAnimationStore } from '../store/animationStore'
@@ -51,6 +52,7 @@ function MenuButton({ label, items }: MenuDef) {
 
 export function Header() {
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
   const fit = useCanvasViewStore((s) => s.fit)
   const doc = useAnimationStore((s) => s.doc)
@@ -115,13 +117,18 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Right: avatar */}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-secondary-foreground">
-          CN
-        </div>
+        {/* Right: help */}
+        <button
+          aria-label="Help"
+          onClick={() => setHelpOpen(true)}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <CircleHelp className="h-4 w-4" />
+        </button>
       </header>
 
       <CanvasSettingsDialog open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen} />
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </>
   )
 }

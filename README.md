@@ -25,10 +25,11 @@ npm run test:watch
 ## How it works
 
 1. Open the app — a sample scene loads with several layers (background, foreground, bunny poses, etc.)
-2. **Animate mode**: select a layer in the layers panel, then drag a property widget on the canvas to record motion
-3. Hit play to watch it back
+2. **Select layers** — tap a layer name in the Layers panel to toggle selection. With the Select tool active, drag the canvas to move selected layers.
+3. **Animate** — select the Animate tool (filmstrip icon in the toolbar). Property widgets (Move X, Move Y, Rotate, Scale, Alpha, Path) appear above the toolbar. Hit Play, then drag a widget to record that property in real time.
+4. Hit Stop, scrub the timeline, and use Undo (⌘Z / Ctrl+Z) to try again.
 
-Property widgets (X, Y, scale, rotation, transparency) appear as floating controls on the canvas. Flick them away to dismiss.
+The toolbar also has Pencil, Eraser, and Pivot tools for building and adjusting your scene. Property widgets are dismissed by flicking them away.
 
 ## Tech stack
 
