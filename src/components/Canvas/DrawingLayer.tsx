@@ -7,20 +7,10 @@ import { fitStroke } from '../../utils/strokeFitting'
 import { trimStrokes } from '../../utils/strokeTrim'
 
 // ---------------------------------------------------------------------------
-// Image cache (shared with module scope so it survives re-renders)
+// Image cache (shared module — also used by the video exporter)
 // ---------------------------------------------------------------------------
 
-const imageCache = new Map<string, HTMLImageElement>()
-
-function loadImage(url: string): Promise<HTMLImageElement> {
-  if (imageCache.has(url)) return Promise.resolve(imageCache.get(url)!)
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => { imageCache.set(url, img); resolve(img) }
-    img.onerror = reject
-    img.src = url
-  })
-}
+import { loadImage, getCachedImage } from '../../utils/imageLoader'
 
 // ---------------------------------------------------------------------------
 // Coordinate helpers
@@ -679,7 +669,7 @@ export function DrawingLayer() {
         if (layer.imageAssetId) {
           const asset = doc.imageAssets[layer.imageAssetId]
           if (!asset) return null
-          const img = imageCache.get(asset.urls[0])
+          const img = getCachedImage(asset.urls[0])
           if (!img) return null
           const p = getEffectiveProps(layerId)
           return (

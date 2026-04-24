@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
+import { ExportVideoDialog } from './ExportVideoDialog'
 import { HelpDialog } from './HelpDialog'
 import { cn } from '@/lib/utils'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
@@ -52,6 +53,7 @@ function MenuButton({ label, items }: MenuDef) {
 
 export function Header() {
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
+  const [exportVideoOpen, setExportVideoOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
   const fit = useCanvasViewStore((s) => s.fit)
@@ -70,7 +72,7 @@ export function Header() {
         { separator: true },
         { label: 'Canvas settings…', onClick: () => setCanvasSettingsOpen(true) },
         { separator: true },
-        { label: 'Export…' },
+        { label: 'Export video…', onClick: () => setExportVideoOpen(true) },
       ],
     },
     {
@@ -140,6 +142,7 @@ export function Header() {
       </header>
 
       <CanvasSettingsDialog open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen} />
+      <ExportVideoDialog open={exportVideoOpen} onOpenChange={setExportVideoOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </>
   )

@@ -92,6 +92,35 @@ Located in `src/components/widgets/`. Each widget type (`SliderWidget`, `Rotatio
 
 `DrawingLayer.tsx` applies matrix transforms (pivot rotation → scale → translate) and their inverses when recording strokes in local layer space. This is the most intricate geometric code in the project.
 
+## UI components (CRITICAL)
+
+**Always use shadcn/ui for standard UI components. Never build buttons, inputs, dialogs, labels, selects, checkboxes, or other common UI primitives from scratch.**
+
+### Workflow
+
+1. **Check `src/components/ui/` first.** These shadcn components are already installed:
+   - `button` — `Button`
+   - `dialog` — `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`
+   - `dropdown-menu` — `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSeparator`, `DropdownMenuSub`, etc.
+   - `field` — `Field`
+   - `input` — `Input`
+   - `label` — `Label`
+   - `popover` — `Popover`, `PopoverContent`, `PopoverTrigger`
+   - `separator` — `Separator`
+   - `tabs` — `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
+
+2. **If a needed component is not installed**, install it before writing any code:
+   ```bash
+   npx shadcn@latest add <component>
+   ```
+   Do **not** hand-roll a substitute — run the CLI.
+
+3. **Use context7 to look up the correct shadcn API** before using a component. Import paths, prop names, and composition patterns differ from the docs of other libraries and must be exact.
+
+4. **Never re-implement shadcn component internals** or copy-paste their markup into a new file. Import the component and compose it.
+
+5. **Exception:** Base UI components (`@base-ui-components/react`) are used for overlay controls (menus, dialogs) that must work with Apple Pencil — see the key constraints above. Do not replace these with shadcn/Radix equivalents.
+
 ## Tech stack
 
 | Layer     | Technology                                        |

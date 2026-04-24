@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.3",
+    "@base-ui/react": "^1.4.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
@@ -25,6 +26,7 @@
     "fit-curve": "^0.2.0",
     "geist": "^1.7.0",
     "lucide-react": "^1.8.0",
+    "mediabunny": "^1.40.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "simplify-js": "^1.2.4",
