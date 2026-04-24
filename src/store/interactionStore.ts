@@ -23,6 +23,8 @@ interface InteractionState {
   drawWidth: number
   /** Layer IDs currently held (finger down) in the layers panel */
   heldLayerIds: string[]
+  /** Group IDs that were directly tapped (not inferred from children) */
+  heldGroupIds: string[]
   /** Persistent selection — survives pointer release, drives filmstrip keyframe display */
   selectedLayerIds: string[]
   /** When active, a floating multi-layer list widget is present */
@@ -48,6 +50,8 @@ interface InteractionActions {
   holdLayer: (layerId: string) => void
   releaseLayer: (layerId: string) => void
   releaseAllLayers: () => void
+  holdGroup: (groupId: string) => void
+  releaseGroup: (groupId: string) => void
   addWidget: (widget: Omit<FloatingWidget, 'id' | 'velocity' | 'isDismissing'>) => string
   updateWidgetPosition: (id: string, position: Vec2, velocity: Vec2) => void
   dismissWidget: (id: string) => void
@@ -79,6 +83,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   eraserWidth: 32,
   drawWidth: 16,
   heldLayerIds: [],
+  heldGroupIds: [],
   selectedLayerIds: [],
   layerListEntries: null,
   floatingWidgets: [],
@@ -150,7 +155,16 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       selectedLayerIds: state.selectedLayerIds.filter((id) => id !== layerId),
     })),
 
-  releaseAllLayers: () => set({ heldLayerIds: [], selectedLayerIds: [] }),
+  releaseAllLayers: () => set({ heldLayerIds: [], heldGroupIds: [], selectedLayerIds: [] }),
+
+  holdGroup: (groupId) =>
+    set((state) => {
+      if (state.heldGroupIds.includes(groupId)) return {}
+      return { heldGroupIds: [...state.heldGroupIds, groupId] }
+    }),
+
+  releaseGroup: (groupId) =>
+    set((state) => ({ heldGroupIds: state.heldGroupIds.filter((id) => id !== groupId) })),
 
   addWidget: (widget) => {
     const id = `widget-${++widgetIdCounter}`

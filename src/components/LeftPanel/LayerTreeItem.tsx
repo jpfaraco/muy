@@ -5,6 +5,7 @@ import { useInteractionStore } from "../../store/interactionStore";
 import { getDescendantLeafIds } from "../../utils/layerUtils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Layer } from "../../types/animation";
 
@@ -30,11 +31,12 @@ const CANCEL_DIST_SQ = 100; // 10px radius squared
 export function LayerTreeItem({ layerId, depth }: Props) {
   const layer = useAnimationStore((s) => s.doc.layers[layerId]);
   const layers = useAnimationStore((s) => s.doc.layers);
-  const { deleteLayer, renameLayer } = useAnimationStore();
+  const { deleteLayer, renameLayer, groupLayer, removeFromGroup, ungroupLayers } = useAnimationStore();
   const heldLayerIds = useInteractionStore((s) => s.heldLayerIds);
+  const heldGroupIds = useInteractionStore((s) => s.heldGroupIds);
   const selectedLayerIds = useInteractionStore((s) => s.selectedLayerIds);
   const reorderDrag = useInteractionStore((s) => s.reorderDrag);
-  const { holdLayer, releaseLayer, releaseAllLayers, addLayerToList, layerListEntries, startReorder } = useInteractionStore();
+  const { holdLayer, releaseLayer, releaseAllLayers, holdGroup, releaseGroup, addLayerToList, layerListEntries, startReorder } = useInteractionStore();
   const [isExpanded, setIsExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -42,13 +44,16 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStartRef = useRef<{ x: number; y: number } | null>(null);
   const wasHeldRef = useRef(false);
+  // Tracks the item whose long-press initiates a reorder (the group itself, not its leaves)
+  const reorderTargetRef = useRef<string | null>(null);
 
-  const isHeld = layer?.type === "group" ? getDescendantLeafIds(layerId, layers).some((id) => heldLayerIds.includes(id)) : heldLayerIds.includes(layerId);
-  const isSelected = layer?.type === "group"
-    ? getDescendantLeafIds(layerId, layers).some((id) => selectedLayerIds.includes(id))
-    : selectedLayerIds.includes(layerId);
+  // Groups are only highlighted when directly tapped, not when a child is selected
+  const isHeld = layer?.type === "group" ? heldGroupIds.includes(layerId) : heldLayerIds.includes(layerId);
+  const isSelected = layer?.type === "group" ? heldGroupIds.includes(layerId) : selectedLayerIds.includes(layerId);
   const isInList = layer?.type === "layer" && (layerListEntries?.some((e) => e.layerId === layerId) ?? false);
-  const isDragging = reorderDrag?.draggingLayerIds.includes(layerId) ?? false;
+  // Dim when this layer is being dragged, OR when it belongs to a group being dragged
+  const isDragging = (reorderDrag?.draggingLayerIds.includes(layerId) ?? false) ||
+    (layer?.parentId !== null && (reorderDrag?.draggingLayerIds.includes(layer?.parentId ?? '') ?? false));
 
   const handleChevronPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -77,6 +82,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         const leafIds = getDescendantLeafIds(layerId, useAnimationStore.getState().doc.layers);
         const allAlreadyHeld = leafIds.length > 0 && leafIds.every((id) => freshHeld.includes(id));
         wasHeldRef.current = allAlreadyHeld;
+        holdGroup(layerId);
         for (const leafId of leafIds) {
           holdLayer(leafId);
         }
@@ -93,17 +99,20 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         }
       }
 
-      // Start long-press timer for reorder
+      // Start long-press timer for reorder.
+      // Groups reorder as a unit ([groupId]); leaves reorder all currently held layers together.
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = setTimeout(() => {
         longPressTimerRef.current = null;
-        const { heldLayerIds: latestHeld } = useInteractionStore.getState();
-        if (latestHeld.length > 0) {
-          startReorder(latestHeld);
+        if (layer.type === 'group') {
+          startReorder([layerId]);
+        } else {
+          const { heldLayerIds: latestHeld } = useInteractionStore.getState();
+          if (latestHeld.length > 0) startReorder(latestHeld);
         }
       }, LONG_PRESS_DELAY);
     },
-    [holdLayer, releaseAllLayers, layerId, layer?.type, layerListEntries, addLayerToList, startReorder, reorderDrag],
+    [holdLayer, holdGroup, releaseAllLayers, layerId, layer?.type, layerListEntries, addLayerToList, startReorder, reorderDrag],
   );
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -124,6 +133,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         longPressTimerRef.current = null;
         if (wasHeldRef.current) {
           if (layer?.type === "group") {
+            releaseGroup(layerId);
             const leafIds = getDescendantLeafIds(layerId, useAnimationStore.getState().doc.layers);
             for (const leafId of leafIds) {
               releaseLayer(leafId);
@@ -134,8 +144,28 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         }
       }
     },
-    [releaseLayer, layerId, layer?.type],
+    [releaseLayer, releaseGroup, layerId, layer?.type],
   );
+
+  // Separate cancel handler: browser stole the touch (e.g. for scrolling).
+  // Undo any selection we applied on this pointer down.
+  const handlePointerCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (!wasHeldRef.current) {
+      if (layer?.type === "group") {
+        releaseGroup(layerId);
+        const leafIds = getDescendantLeafIds(layerId, useAnimationStore.getState().doc.layers);
+        for (const leafId of leafIds) {
+          releaseLayer(leafId);
+        }
+      } else {
+        releaseLayer(layerId);
+      }
+    }
+  }, [releaseLayer, releaseGroup, layerId, layer?.type]);
 
   const handleRenameCommit = useCallback(
     (value: string) => {
@@ -167,6 +197,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         data-layer-id={layerId}
         data-parent-id={layer.parentId ?? ""}
         data-depth={depth}
+        data-is-group={layer.type === "group" ? "true" : undefined}
         className={cn(
           "group flex h-10 items-center gap-2 pr-2 text-sm transition-colors",
           isHeld
@@ -181,7 +212,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         {layer.type === "group" ? (
           <button className="flex items-center p-0.5 -ml-0.5" onPointerDown={handleChevronPointerDown}>
@@ -200,7 +231,40 @@ export function LayerTreeItem({ layerId, depth }: Props) {
               <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-40 p-1" sideOffset={2}>
+          <PopoverContent align="end" className="w-44 p-1" sideOffset={2}>
+            {layer.type === 'layer' && layer.parentId === null && (
+              <>
+                <button
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
+                  onClick={() => { groupLayer(layerId); setMenuOpen(false); }}
+                >
+                  Add to new group
+                </button>
+                <Separator className="my-1" />
+              </>
+            )}
+            {layer.type === 'layer' && layer.parentId !== null && (
+              <>
+                <button
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
+                  onClick={() => { removeFromGroup(layerId); setMenuOpen(false); }}
+                >
+                  Remove from group
+                </button>
+                <Separator className="my-1" />
+              </>
+            )}
+            {layer.type === 'group' && (
+              <>
+                <button
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
+                  onClick={() => { ungroupLayers(layerId); setMenuOpen(false); }}
+                >
+                  Ungroup layers
+                </button>
+                <Separator className="my-1" />
+              </>
+            )}
             <button
               className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
               onClick={() => {

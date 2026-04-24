@@ -44,7 +44,9 @@ export function LayersPanel() {
 
     const baseProps = { ...DEFAULT_LAYER_PROPS, x: 400, y: 250 }
     const { doc: currentDoc } = useAnimationStore.getState()
-    const frames = currentDoc.frames.map((fd) => ({ ...fd, [layerId]: { ...baseProps } }))
+    const frames = currentDoc.frames.map((fd, i) =>
+      i === 0 ? { ...fd, [layerId]: { ...baseProps } } : fd
+    )
 
     setDoc({
       ...currentDoc,
@@ -64,9 +66,13 @@ export function LayersPanel() {
     const containerRect = scrollContainer.getBoundingClientRect()
     const items = Array.from(
       scrollContainer.querySelectorAll<HTMLElement>('[data-layer-item]')
-    ).filter(
-      (el) => !reorderDrag.draggingLayerIds.includes(el.dataset.layerId ?? '')
-    )
+    ).filter((el) => {
+      const id = el.dataset.layerId ?? ''
+      const parentId = el.dataset.parentId ?? ''
+      // Exclude the dragged items themselves and any children of a dragged group
+      return !reorderDrag.draggingLayerIds.includes(id) &&
+             !reorderDrag.draggingLayerIds.includes(parentId)
+    })
 
     if (items.length === 0) {
       updateReorderInsert(null, null)
@@ -98,11 +104,19 @@ export function LayersPanel() {
         const nextRect = items[i + 1].getBoundingClientRect()
         const midpoint = currRect.bottom + (nextRect.top - currRect.bottom) / 2
         if (pointerY < midpoint) {
-          // Between items[i] and items[i+1] → insert before items[i] in its container
-          insertBefore = items[i].dataset.layerId ?? null
-          insertParent = items[i].dataset.parentId || null
+          const depth = parseInt(items[i].dataset.depth ?? '0')
+          if (items[i].dataset.isGroup === 'true') {
+            // Pointer is below a group header → drop inside the group at the top
+            insertBefore = null
+            insertParent = items[i].dataset.layerId ?? null
+            lineLeft = 12 + (depth + 1) * 24
+          } else {
+            // Between items[i] and items[i+1] → insert before items[i] in its container
+            insertBefore = items[i].dataset.layerId ?? null
+            insertParent = items[i].dataset.parentId || null
+            lineLeft = 12 + depth * 24
+          }
           lineY = currRect.bottom - containerRect.top + scrollContainer.scrollTop
-          lineLeft = 12 + parseInt(items[i].dataset.depth ?? '0') * 24
           placed = true
           break
         }
@@ -111,10 +125,18 @@ export function LayersPanel() {
         // Below last item (most background) → new bottom item
         const lastItem = items[items.length - 1]
         const lastRect = lastItem.getBoundingClientRect()
-        insertBefore = lastItem.dataset.layerId ?? null
-        insertParent = lastItem.dataset.parentId || null
+        const depth = parseInt(lastItem.dataset.depth ?? '0')
+        if (lastItem.dataset.isGroup === 'true') {
+          // Empty group at the bottom → drop inside it
+          insertBefore = null
+          insertParent = lastItem.dataset.layerId ?? null
+          lineLeft = 12 + (depth + 1) * 24
+        } else {
+          insertBefore = lastItem.dataset.layerId ?? null
+          insertParent = lastItem.dataset.parentId || null
+          lineLeft = 12 + depth * 24
+        }
         lineY = lastRect.bottom - containerRect.top + scrollContainer.scrollTop
-        lineLeft = 12 + parseInt(lastItem.dataset.depth ?? '0') * 24
       }
     }
 
@@ -123,7 +145,8 @@ export function LayersPanel() {
     setInsertionLineLeft(lineLeft)
   }
 
-  // Document-level pointerup to commit reorder even when finger lifts outside panel
+  // Document-level pointerup to commit reorder even when finger lifts outside panel.
+  // pointercancel cleans up without committing (browser stole the touch).
   const isReordering = reorderDrag !== null
   useEffect(() => {
     if (!isReordering) return
@@ -134,9 +157,26 @@ export function LayersPanel() {
       endReorder()
       setInsertionLineY(null)
     }
+    const cancel = () => {
+      endReorder()
+      setInsertionLineY(null)
+    }
     document.addEventListener('pointerup', commit)
-    return () => document.removeEventListener('pointerup', commit)
+    document.addEventListener('pointercancel', cancel)
+    return () => {
+      document.removeEventListener('pointerup', commit)
+      document.removeEventListener('pointercancel', cancel)
+    }
   }, [isReordering]) // eslint-disable-line
+
+  // Prevent native touch scroll while reordering so pointer events reach our handlers.
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el || !isReordering) return
+    const prevent = (e: TouchEvent) => e.preventDefault()
+    el.addEventListener('touchmove', prevent, { passive: false })
+    return () => el.removeEventListener('touchmove', prevent)
+  }, [isReordering])
 
   return (
     <div className="flex flex-col">

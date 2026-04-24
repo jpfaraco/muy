@@ -51,6 +51,12 @@ interface AnimationActions {
   setLayerPivot: (layerId: string, pivotX: number, pivotY: number) => void
   /** Update canvas dimensions and background color */
   setCanvasSettings: (canvasWidth: number, canvasHeight: number, backgroundColor: string) => void
+  /** Wrap an ungrouped layer in a new group at the same position */
+  groupLayer: (layerId: string) => void
+  /** Move a grouped layer out of its group, placing it above the group */
+  removeFromGroup: (layerId: string) => void
+  /** Expand a group's children into top-level and delete the group */
+  ungroupLayers: (groupId: string) => void
 }
 
 type AnimationStore = AnimationState & AnimationActions
@@ -214,8 +220,23 @@ export const useAnimationStore = create<AnimationStore>()(
       let layers = { ...state.doc.layers }
       let layerIds = [...state.doc.layerIds]
 
+      // Sort draggingIds to preserve their original relative order within their container.
+      // draggingIds arrives in tap order, which may differ from stack order.
+      const orderedDraggingIds = [...draggingIds].sort((a, b) => {
+        const la = state.doc.layers[a]
+        const lb = state.doc.layers[b]
+        if (la?.parentId === null && lb?.parentId === null) {
+          return state.doc.layerIds.indexOf(a) - state.doc.layerIds.indexOf(b)
+        }
+        if (la?.parentId !== null && la?.parentId === lb?.parentId) {
+          const childIds = state.doc.layers[la.parentId]?.childIds ?? []
+          return childIds.indexOf(a) - childIds.indexOf(b)
+        }
+        return 0
+      })
+
       // Remove each dragging ID from its current container
-      for (const id of draggingIds) {
+      for (const id of orderedDraggingIds) {
         const layer = layers[id]
         if (!layer) continue
         const oldParent = layer.parentId
@@ -234,7 +255,7 @@ export const useAnimationStore = create<AnimationStore>()(
       if (insertParent === null) {
         const idx = insertBefore !== null ? layerIds.indexOf(insertBefore) : layerIds.length
         const safeIdx = idx === -1 ? layerIds.length : idx
-        layerIds = [...layerIds.slice(0, safeIdx), ...draggingIds, ...layerIds.slice(safeIdx)]
+        layerIds = [...layerIds.slice(0, safeIdx), ...orderedDraggingIds, ...layerIds.slice(safeIdx)]
       } else {
         const grp = layers[insertParent]
         if (grp?.type === 'group') {
@@ -245,7 +266,7 @@ export const useAnimationStore = create<AnimationStore>()(
             ...layers,
             [insertParent]: {
               ...grp,
-              childIds: [...childIds.slice(0, safeIdx), ...draggingIds, ...childIds.slice(safeIdx)],
+              childIds: [...childIds.slice(0, safeIdx), ...orderedDraggingIds, ...childIds.slice(safeIdx)],
             },
           }
         }
@@ -291,6 +312,58 @@ export const useAnimationStore = create<AnimationStore>()(
     set((state) => ({
       doc: { ...state.doc, canvasWidth, canvasHeight, backgroundColor },
     })),
+
+  groupLayer: (layerId) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer || layer.type !== 'layer' || layer.parentId !== null) return state
+
+      const existingNums = Object.values(state.doc.layers)
+        .filter((l) => l.type === 'group')
+        .map((l) => { const m = l.name.match(/^Group (\d+)$/); return m ? parseInt(m[1], 10) : 0 })
+      const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1
+
+      const groupId = `group-${Date.now()}`
+      const group: Layer = { id: groupId, name: `Group ${nextNum}`, type: 'group', childIds: [layerId], parentId: null }
+      const layerIds = state.doc.layerIds.map((id) => (id === layerId ? groupId : id))
+      const layers = { ...state.doc.layers, [groupId]: group, [layerId]: { ...layer, parentId: groupId } }
+      return { doc: { ...state.doc, layers, layerIds } }
+    }),
+
+  removeFromGroup: (layerId) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer || layer.type !== 'layer' || layer.parentId === null) return state
+      const groupId = layer.parentId
+      const group = state.doc.layers[groupId]
+      if (!group || group.type !== 'group') return state
+
+      const newChildIds = (group.childIds ?? []).filter((id) => id !== layerId)
+      const groupIdx = state.doc.layerIds.indexOf(groupId)
+      const insertAt = groupIdx === -1 ? state.doc.layerIds.length : groupIdx + 1
+      const layerIds = [...state.doc.layerIds.slice(0, insertAt), layerId, ...state.doc.layerIds.slice(insertAt)]
+      const layers = { ...state.doc.layers, [layerId]: { ...layer, parentId: null }, [groupId]: { ...group, childIds: newChildIds } }
+      return { doc: { ...state.doc, layers, layerIds } }
+    }),
+
+  ungroupLayers: (groupId) =>
+    set((state) => {
+      const group = state.doc.layers[groupId]
+      if (!group || group.type !== 'group') return state
+
+      const childIds = group.childIds ?? []
+      const groupIdx = state.doc.layerIds.indexOf(groupId)
+      const safeIdx = groupIdx === -1 ? state.doc.layerIds.length : groupIdx
+      const layerIds = [...state.doc.layerIds.slice(0, safeIdx), ...childIds, ...state.doc.layerIds.slice(safeIdx + 1)]
+
+      const { [groupId]: _removed, ...layersWithoutGroup } = state.doc.layers
+      const layers = childIds.reduce<typeof layersWithoutGroup>(
+        (acc, id) => acc[id] ? { ...acc, [id]: { ...acc[id], parentId: null } } : acc,
+        layersWithoutGroup,
+      )
+      return { doc: { ...state.doc, layers, layerIds } }
+    }),
+
     }),
     {
       partialize: (state): PartializedAnimationState => ({
