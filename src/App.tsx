@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAnimationStore } from './store/animationStore'
 import { useAnimationLoop } from './hooks/useAnimationLoop'
+import { useUndoRedo } from './hooks/useUndoRedo'
 import { initialDoc } from './assets/sample/initialDoc'
 import { Header } from './components/Header'
 import { LeftPanel } from './components/LeftPanel/LeftPanel'
@@ -12,9 +13,11 @@ export default function App() {
 
   useEffect(() => {
     setDoc(initialDoc)
+    useAnimationStore.temporal.getState().clear()
   }, [setDoc])
 
   useAnimationLoop()
+  useUndoRedo()
 
   return (
     <div className="flex flex-col w-full h-full bg-background overflow-hidden">

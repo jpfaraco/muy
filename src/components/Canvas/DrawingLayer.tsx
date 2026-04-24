@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useAnimationStore, getFlatRenderIds } from '../../store/animationStore'
+import { captureHistoryEntry, useAnimationStore, getFlatRenderIds } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
 import { DEFAULT_LAYER_PROPS } from '../../types/animation'
 import type { Point, CubicSegment, Stroke } from '../../types/animation'
@@ -382,6 +382,8 @@ export function DrawingLayer() {
       if (!isActive) {
         const effectiveHeld = getEffectiveHeldLayers()
         if (effectiveHeld.length === 0) return
+        captureHistoryEntry()
+        useAnimationStore.temporal.getState().pause()
         e.currentTarget.setPointerCapture(e.pointerId)
         const pos = toCanvasCoords(e.clientX, e.clientY)
         animateDragRef.current = { active: true, lastX: pos.x, lastY: pos.y }
@@ -402,6 +404,8 @@ export function DrawingLayer() {
       if (drawTool === 'move') {
         const freshHeld = useInteractionStore.getState().heldLayerIds
         if (freshHeld.length === 0) return
+        captureHistoryEntry()
+        useAnimationStore.temporal.getState().pause()
         e.currentTarget.setPointerCapture(e.pointerId)
         const canvasPos = toCanvasCoords(e.clientX, e.clientY)
         const layerStartPositions: MoveDrag['layerStartPositions'] = {}
@@ -430,6 +434,8 @@ export function DrawingLayer() {
           return l?.type === 'layer' && l?.layerType === 'vector'
         }) ?? null
         if (!targetId) return
+        captureHistoryEntry()
+        useAnimationStore.temporal.getState().pause()
         e.currentTarget.setPointerCapture(e.pointerId)
         targetLayerIdRef.current = targetId
         isErasingRef.current = true
@@ -454,6 +460,8 @@ export function DrawingLayer() {
       }
 
       // ── Pencil ──
+      captureHistoryEntry()
+      useAnimationStore.temporal.getState().pause()
       e.currentTarget.setPointerCapture(e.pointerId)
 
       let targetId = heldVectorLayerId
@@ -584,6 +592,7 @@ export function DrawingLayer() {
         clearLiveLayerProps(activeLayerIds, ['x', 'y'])
       }
       setCanvasDragActive(false)
+      useAnimationStore.temporal.getState().resume()
       return
     }
 
@@ -600,6 +609,7 @@ export function DrawingLayer() {
       if (updates.length > 0) writeFrameValues(frame, updates)
       clearLiveLayerProps(ids)
       moveDragRef.current = null
+      useAnimationStore.temporal.getState().resume()
       return
     }
 
@@ -608,6 +618,7 @@ export function DrawingLayer() {
       isErasingRef.current = false
       prevEraserCanvasPosRef.current = null
       targetLayerIdRef.current = null
+      useAnimationStore.temporal.getState().resume()
       return
     }
 
@@ -619,6 +630,7 @@ export function DrawingLayer() {
     }
     setLivePoints([])
     targetLayerIdRef.current = null
+    useAnimationStore.temporal.getState().resume()
   }, [livePoints, addStroke, writeFrameValues, clearLiveLayerProps, setCanvasDragActive])
 
   const handlePointerLeave = useCallback(() => {

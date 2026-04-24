@@ -29,6 +29,7 @@
     "react-dom": "^19.2.4",
     "simplify-js": "^1.2.4",
     "tailwind-merge": "^3.5.0",
+    "zundo": "^2.3.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

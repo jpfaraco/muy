@@ -11,10 +11,10 @@ import { Button } from '@/components/ui/button'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { cn } from '@/lib/utils'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
-import { getFlatRenderIds, useAnimationStore } from '../store/animationStore'
+import { getFlatRenderIds, useAnimationHistory, useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
 
-type MenuItem = { label: string; onClick?: () => void } | { separator: true }
+type MenuItem = { label: string; onClick?: () => void; disabled?: boolean } | { separator: true }
 
 interface MenuDef {
   label: string
@@ -39,7 +39,7 @@ function MenuButton({ label, items }: MenuDef) {
           'separator' in item ? (
             <DropdownMenuSeparator key={i} />
           ) : (
-            <DropdownMenuItem key={item.label} onSelect={item.onClick}>
+            <DropdownMenuItem key={item.label} onSelect={item.onClick} disabled={item.disabled}>
               {item.label}
             </DropdownMenuItem>
           ),
@@ -56,6 +56,9 @@ export function Header() {
   const doc = useAnimationStore((s) => s.doc)
   const setHeldLayers = useInteractionStore((s) => s.setHeldLayers)
 
+  const canUndo = useAnimationHistory((s) => s.pastStates.length > 0)
+  const canRedo = useAnimationHistory((s) => s.futureStates.length > 0)
+
   const menus: MenuDef[] = [
     {
       label: 'File',
@@ -71,8 +74,16 @@ export function Header() {
     {
       label: 'Edit',
       items: [
-        { label: 'Undo' },
-        { label: 'Redo' },
+        {
+          label: 'Undo',
+          disabled: !canUndo,
+          onClick: () => useAnimationStore.temporal.getState().undo(),
+        },
+        {
+          label: 'Redo',
+          disabled: !canRedo,
+          onClick: () => useAnimationStore.temporal.getState().redo(),
+        },
         { separator: true },
         { label: 'Select all', onClick: () => setHeldLayers(getFlatRenderIds(doc)) },
       ],

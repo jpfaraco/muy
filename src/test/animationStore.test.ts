@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useAnimationStore } from '../store/animationStore'
+import { captureHistoryEntry, useAnimationStore } from '../store/animationStore'
 import { DEFAULT_LAYER_PROPS } from '../types/animation'
 import type { AnimationDoc } from '../types/animation'
 
@@ -99,5 +99,70 @@ describe('animationStore', () => {
     const newDoc = makeMinimalDoc(10)
     useAnimationStore.getState().setDoc(newDoc)
     expect(useAnimationStore.getState().doc.frameCount).toBe(10)
+  })
+
+  describe('undo/redo', () => {
+    beforeEach(() => {
+      useAnimationStore.temporal.getState().clear()
+    })
+
+    it('undoes a frame property write', () => {
+      useAnimationStore.getState().writeFrameValues(0, [{ layerId: 'layer-a', property: 'x', value: 200 }])
+      expect(useAnimationStore.getState().getLayerPropsAtFrame('layer-a', 0).x).toBe(200)
+
+      useAnimationStore.temporal.getState().undo()
+      expect(useAnimationStore.getState().getLayerPropsAtFrame('layer-a', 0).x).toBe(DEFAULT_LAYER_PROPS.x)
+    })
+
+    it('redoes after undo', () => {
+      useAnimationStore.getState().writeFrameValues(0, [{ layerId: 'layer-a', property: 'x', value: 300 }])
+      useAnimationStore.temporal.getState().undo()
+      expect(useAnimationStore.getState().getLayerPropsAtFrame('layer-a', 0).x).toBe(DEFAULT_LAYER_PROPS.x)
+
+      useAnimationStore.temporal.getState().redo()
+      expect(useAnimationStore.getState().getLayerPropsAtFrame('layer-a', 0).x).toBe(300)
+    })
+
+    it('undoes addStroke', () => {
+      const stroke = { tool: 'pencil' as const, color: '#000', width: 2, origin: { x: 0, y: 0 }, segments: [] }
+      useAnimationStore.getState().addStroke('layer-a', stroke)
+      expect(useAnimationStore.getState().drawStrokes['layer-a']).toHaveLength(1)
+
+      useAnimationStore.temporal.getState().undo()
+      expect(useAnimationStore.getState().drawStrokes['layer-a'] ?? []).toHaveLength(0)
+    })
+
+    it('undoes deleteLayer and restores the layer', () => {
+      useAnimationStore.getState().deleteLayer('layer-b')
+      expect(useAnimationStore.getState().doc.layerIds).not.toContain('layer-b')
+
+      useAnimationStore.temporal.getState().undo()
+      expect(useAnimationStore.getState().doc.layerIds).toContain('layer-b')
+    })
+
+    it('clears redo stack when a new action is taken after undo', () => {
+      useAnimationStore.getState().writeFrameValues(0, [{ layerId: 'layer-a', property: 'y', value: 50 }])
+      useAnimationStore.temporal.getState().undo()
+      useAnimationStore.getState().writeFrameValues(0, [{ layerId: 'layer-a', property: 'y', value: 99 }])
+
+      expect(useAnimationStore.temporal.getState().futureStates).toHaveLength(0)
+    })
+
+    it('gesture writes collapse into one history entry via captureHistoryEntry + pause/resume', () => {
+      // Simulate gesture start: snapshot pre-gesture state, then pause
+      captureHistoryEntry()
+      useAnimationStore.temporal.getState().pause()
+      useAnimationStore.getState().writeFrameValues(0, [{ layerId: 'layer-a', property: 'x', value: 10 }])
+      useAnimationStore.getState().writeFrameValues(1, [{ layerId: 'layer-a', property: 'x', value: 20 }])
+      useAnimationStore.getState().writeFrameValues(2, [{ layerId: 'layer-a', property: 'x', value: 30 }])
+      // Gesture end: resume
+      useAnimationStore.temporal.getState().resume()
+
+      // All three writes collapse into one history entry (captured before the gesture)
+      expect(useAnimationStore.temporal.getState().pastStates).toHaveLength(1)
+      useAnimationStore.temporal.getState().undo()
+      // After undo, all three frames return to default
+      expect(useAnimationStore.getState().getLayerPropsAtFrame('layer-a', 2).x).toBe(DEFAULT_LAYER_PROPS.x)
+    })
   })
 })

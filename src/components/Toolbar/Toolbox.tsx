@@ -1,5 +1,6 @@
-import { MousePointer2, Pencil, Eraser, Crosshair, Film } from 'lucide-react'
+import { MousePointer2, Pencil, Eraser, Crosshair, Film, Undo2, Redo2 } from 'lucide-react'
 import { useInteractionStore } from '../../store/interactionStore'
+import { useAnimationHistory, useAnimationStore } from '../../store/animationStore'
 import { cn } from '@/lib/utils'
 import type { ActiveTool } from '../../store/interactionStore'
 
@@ -7,6 +8,8 @@ import type { ActiveTool } from '../../store/interactionStore'
 export function Toolbox() {
   const activeTool = useInteractionStore((s) => s.activeTool)
   const setActiveTool = useInteractionStore((s) => s.setActiveTool)
+  const canUndo = useAnimationHistory((s) => s.pastStates.length > 0)
+  const canRedo = useAnimationHistory((s) => s.futureStates.length > 0)
 
   const btn = (tool: ActiveTool, Icon: React.ElementType, label: string) => (
     <button
@@ -24,9 +27,27 @@ export function Toolbox() {
     </button>
   )
 
+  const historyBtn = (Icon: React.ElementType, label: string, enabled: boolean, action: () => void) => (
+    <button
+      aria-label={label}
+      onClick={action}
+      disabled={!enabled}
+      className={cn(
+        'flex h-10 w-10 items-center justify-center rounded-md transition-colors',
+        enabled
+          ? 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+          : 'text-muted-foreground opacity-50',
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  )
+
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-lg">
-      {btn('select',  MousePointer2, 'Select')}
+      {btn('select', MousePointer2, 'Select')}
+      {historyBtn(Undo2, 'Undo', canUndo, () => useAnimationStore.temporal.getState().undo())}
+      {historyBtn(Redo2, 'Redo', canRedo, () => useAnimationStore.temporal.getState().redo())}
       <div className="h-6 w-px shrink-0 bg-border" />
       {btn('pencil',  Pencil,        'Pencil')}
       {btn('eraser',  Eraser,        'Eraser')}

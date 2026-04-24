@@ -1,4 +1,6 @@
-import { create } from 'zustand'
+import { create, useStore } from 'zustand'
+import { temporal } from 'zundo'
+import type { TemporalState } from 'zundo'
 import type { AnimationDoc, Layer, LayerProps, PropertyKey, Stroke } from '../types/animation'
 import { DEFAULT_LAYER_PROPS } from '../types/animation'
 
@@ -53,11 +55,15 @@ interface AnimationActions {
 
 type AnimationStore = AnimationState & AnimationActions
 
+type PartializedAnimationState = Pick<AnimationState, 'doc' | 'drawStrokes'>
+
 function makeEmptyFrames(count: number): AnimationDoc['frames'] {
   return Array.from({ length: count }, () => ({}))
 }
 
-export const useAnimationStore = create<AnimationStore>((set, get) => ({
+export const useAnimationStore = create<AnimationStore>()(
+  temporal(
+    (set, get) => ({
   doc: {
     fps: 24,
     frameCount: 240,
@@ -285,4 +291,36 @@ export const useAnimationStore = create<AnimationStore>((set, get) => ({
     set((state) => ({
       doc: { ...state.doc, canvasWidth, canvasHeight, backgroundColor },
     })),
-}))
+    }),
+    {
+      partialize: (state): PartializedAnimationState => ({
+        doc: state.doc,
+        drawStrokes: state.drawStrokes,
+      }),
+      limit: 50,
+      equality: (a, b) => a.doc === b.doc && a.drawStrokes === b.drawStrokes,
+    }
+  )
+)
+
+export function useAnimationHistory<T>(
+  selector: (state: TemporalState<PartializedAnimationState>) => T,
+): T {
+  return useStore(useAnimationStore.temporal, selector)
+}
+
+/**
+ * Manually push the current doc+drawStrokes into the undo history.
+ * Call this right before starting a multi-step gesture (drag, stroke, erase),
+ * then call temporal.getState().pause() to suppress per-frame entries.
+ * Call temporal.getState().resume() when the gesture ends.
+ */
+export function captureHistoryEntry() {
+  const { doc, drawStrokes } = useAnimationStore.getState()
+  const snapshot: PartializedAnimationState = { doc, drawStrokes }
+  const temporal = useAnimationStore.temporal
+  temporal.setState({
+    pastStates: temporal.getState().pastStates.concat([snapshot]),
+    futureStates: [],
+  })
+}

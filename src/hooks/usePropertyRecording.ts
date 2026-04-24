@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useAnimationStore } from '../store/animationStore'
+import { captureHistoryEntry, useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
 import type { PropertyKey } from '../types/animation'
 
@@ -39,6 +39,8 @@ export function usePropertyRecording(property: PropertyKey) {
   const prevWrittenFrameRef = useRef<number>(-1)
 
   const startRecording = useCallback(() => {
+    captureHistoryEntry()
+    useAnimationStore.temporal.getState().pause()
     const frame = useAnimationStore.getState().currentFrame
     prevWrittenFrameRef.current = frame
     const effectiveHeld = getEffectiveHeldLayers()
@@ -62,6 +64,7 @@ export function usePropertyRecording(property: PropertyKey) {
     if (activeLayerIds.length > 0) {
       clearLiveLayerProps(activeLayerIds, [property])
     }
+    useAnimationStore.temporal.getState().resume()
   }, [clearLiveLayerProps, property])
 
   const recordDelta = useCallback(
