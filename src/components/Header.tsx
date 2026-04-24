@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Circle, CircleHelp } from 'lucide-react'
+import { ChevronDown, CircleHelp } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,7 +108,19 @@ export function Header() {
         {/* Left: logo + nav */}
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-            <Circle className="h-5 w-5 text-foreground" strokeWidth={1.5} />
+            <div
+              className="h-5 w-5 bg-current"
+              style={{
+                maskImage: 'url(/logo-icon.svg)',
+                WebkitMaskImage: 'url(/logo-icon.svg)',
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center',
+              }}
+            />
           </div>
           <nav className="flex items-center">
             {menus.map((m) => (
