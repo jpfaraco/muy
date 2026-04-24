@@ -218,7 +218,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
           layerIcon(layer)
         )}
 
-        {isRenaming ? <input autoFocus defaultValue={layer.name} className="flex-1 truncate bg-transparent outline-none ring-1 ring-blue-400 rounded px-1" onBlur={(e) => handleRenameCommit(e.currentTarget.value)} onKeyDown={handleRenameKeyDown} onPointerDown={(e) => e.stopPropagation()} /> : <span className="flex-1 truncate">{layer.name}</span>}
+        {isRenaming ? <input autoFocus defaultValue={layer.name} className="flex-1 truncate bg-transparent outline-none ring-1 ring-blue-400 rounded px-1" onFocus={(e) => e.currentTarget.select()} onBlur={(e) => handleRenameCommit(e.currentTarget.value)} onKeyDown={handleRenameKeyDown} onPointerDown={(e) => e.stopPropagation()} /> : <span className="flex-1 truncate">{layer.name}</span>}
 
         {/* Kebab menu */}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
