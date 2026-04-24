@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Route } from 'lucide-react'
 import { useAnimationStore } from '../../store/animationStore'
@@ -15,39 +15,74 @@ const PROPERTIES: Array<{ key: PropertyKey; label: string; icon: React.ElementTy
   { key: 'progress',     label: 'Path',    icon: Route          },
 ]
 
-function StrokePreview({ width, color }: { width: number; color: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const W = 80
-  const H = 24
+// Slider track is w-36 = 144px; native thumb is ~14px wide.
+const SLIDER_TRACK_WIDTH = 144
+const THUMB_WIDTH = 14
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, W, H)
-    ctx.strokeStyle = color
-    ctx.lineWidth = Math.min(width, H * 0.85)
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    const amplitude = Math.max(1, (H - ctx.lineWidth) / 2)
-    ctx.beginPath()
-    ctx.moveTo(4, H / 2)
-    for (let x = 4; x <= W - 4; x++) {
-      const t = (x - 4) / (W - 8)
-      ctx.lineTo(x, H / 2 + amplitude * Math.sin(t * Math.PI * 2.5))
-    }
-    ctx.stroke()
-  }, [width, color])
+function thumbCenterX(value: number, min: number, max: number): number {
+  const fraction = (value - min) / (max - min)
+  return fraction * (SLIDER_TRACK_WIDTH - THUMB_WIDTH) + THUMB_WIDTH / 2
+}
 
-  return <canvas ref={canvasRef} width={W} height={H} className="shrink-0" />
+function StrokeWidthPreview({
+  value,
+  min,
+  max,
+  visible,
+  color,
+  variant,
+}: {
+  value: number
+  min: number
+  max: number
+  visible: boolean
+  color?: string
+  variant: 'pencil' | 'eraser'
+}) {
+  if (!visible) return null
+
+  const size = Math.max(8, value)
+  const cx = thumbCenterX(value, min, max)
+  // SVG needs a few extra px so the stroke doesn't clip
+  const svgPad = 4
+  const svgSize = size + svgPad * 2
+  const svgCx = svgSize / 2
+  const svgR = size / 2
+
+  return (
+    <div
+      className="pointer-events-none absolute"
+      style={{
+        left: variant === 'pencil' ? `${cx - size / 2}px` : `${cx - svgSize / 2}px`,
+        bottom: 'calc(100% + 8px)',
+        filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.45))',
+      }}
+    >
+      {variant === 'pencil' ? (
+        <div
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '50%',
+            background: color,
+          }}
+        />
+      ) : (
+        <svg width={svgSize} height={svgSize} style={{ display: 'block' }}>
+          <circle cx={svgCx} cy={svgCx} r={svgR} fill="none" stroke="rgba(0,0,0,0.85)" strokeWidth={3} />
+          <circle cx={svgCx} cy={svgCx} r={svgR} fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth={1.5} />
+        </svg>
+      )}
+    </div>
+  )
 }
 
 function PencilOptions() {
-  const drawColor  = useInteractionStore((s) => s.drawColor)
+  const drawColor   = useInteractionStore((s) => s.drawColor)
   const pencilWidth = useInteractionStore((s) => s.pencilWidth)
-  const setDrawColor  = useInteractionStore((s) => s.setDrawColor)
+  const setDrawColor   = useInteractionStore((s) => s.setDrawColor)
   const setPencilWidth = useInteractionStore((s) => s.setPencilWidth)
+  const [showPreview, setShowPreview] = useState(false)
 
   return (
     <div className="flex items-center gap-4">
@@ -81,20 +116,30 @@ function PencilOptions() {
         className="h-6 w-11 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
 
-      {/* Slider */}
-      <input
-        type="range"
-        min={1}
-        max={64}
-        step={1}
-        value={pencilWidth}
-        onChange={(e) => setPencilWidth(Number(e.target.value))}
-        className="h-1.5 w-36 cursor-pointer accent-foreground"
-        style={{ touchAction: 'auto' }}
-      />
-
-      {/* Stroke preview */}
-      <StrokePreview width={pencilWidth} color={drawColor} />
+      {/* Slider with floating circle preview */}
+      <div className="relative">
+        <StrokeWidthPreview
+          value={pencilWidth}
+          min={1}
+          max={64}
+          visible={showPreview}
+          color={drawColor}
+          variant="pencil"
+        />
+        <input
+          type="range"
+          min={1}
+          max={64}
+          step={1}
+          value={pencilWidth}
+          onChange={(e) => setPencilWidth(Number(e.target.value))}
+          onPointerDown={() => setShowPreview(true)}
+          onPointerUp={() => setShowPreview(false)}
+          onPointerCancel={() => setShowPreview(false)}
+          className="h-1.5 w-36 cursor-pointer accent-foreground"
+          style={{ touchAction: 'auto' }}
+        />
+      </div>
     </div>
   )
 }
@@ -102,6 +147,7 @@ function PencilOptions() {
 function EraserOptions() {
   const eraserWidth = useInteractionStore((s) => s.eraserWidth)
   const setEraserWidth = useInteractionStore((s) => s.setEraserWidth)
+  const [showPreview, setShowPreview] = useState(false)
 
   return (
     <div className="flex items-center gap-4">
@@ -115,20 +161,29 @@ function EraserOptions() {
         className="h-6 w-11 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
 
-      {/* Slider */}
-      <input
-        type="range"
-        min={1}
-        max={128}
-        step={1}
-        value={eraserWidth}
-        onChange={(e) => setEraserWidth(Number(e.target.value))}
-        className="h-1.5 w-36 cursor-pointer accent-foreground"
-        style={{ touchAction: 'auto' }}
-      />
-
-      {/* Stroke preview */}
-      <StrokePreview width={eraserWidth} color="#6b7280" />
+      {/* Slider with floating circle preview */}
+      <div className="relative">
+        <StrokeWidthPreview
+          value={eraserWidth}
+          min={1}
+          max={128}
+          visible={showPreview}
+          variant="eraser"
+        />
+        <input
+          type="range"
+          min={1}
+          max={128}
+          step={1}
+          value={eraserWidth}
+          onChange={(e) => setEraserWidth(Number(e.target.value))}
+          onPointerDown={() => setShowPreview(true)}
+          onPointerUp={() => setShowPreview(false)}
+          onPointerCancel={() => setShowPreview(false)}
+          className="h-1.5 w-36 cursor-pointer accent-foreground"
+          style={{ touchAction: 'auto' }}
+        />
+      </div>
     </div>
   )
 }
