@@ -31,6 +31,35 @@ describe('animationStore', () => {
     })
   })
 
+  describe('setTimelineLength', () => {
+    it('truncates frames when shrinking and clamps currentFrame', () => {
+      useAnimationStore.getState().writeFrameValue(4, 'layer-a', 'x', 99)
+      useAnimationStore.getState().setCurrentFrame(4)
+      useAnimationStore.getState().setTimelineLength(3)
+
+      const state = useAnimationStore.getState()
+      expect(state.doc.frameCount).toBe(3)
+      expect(state.doc.frames).toHaveLength(3)
+      expect(state.currentFrame).toBe(2)
+    })
+
+    it('extends frames with empty entries when growing and preserves existing data', () => {
+      useAnimationStore.getState().writeFrameValue(2, 'layer-a', 'x', 42)
+      useAnimationStore.getState().setTimelineLength(10)
+
+      const state = useAnimationStore.getState()
+      expect(state.doc.frameCount).toBe(10)
+      expect(state.doc.frames).toHaveLength(10)
+      expect(state.doc.frames[2]['layer-a'].x).toBe(42)
+      expect(state.doc.frames[9]).toEqual({})
+    })
+
+    it('clamps to minimum of 1 frame', () => {
+      useAnimationStore.getState().setTimelineLength(0)
+      expect(useAnimationStore.getState().doc.frameCount).toBe(1)
+    })
+  })
+
   it('setCurrentFrame clamps to valid range', () => {
     useAnimationStore.getState().setCurrentFrame(999)
     expect(useAnimationStore.getState().currentFrame).toBe(4)

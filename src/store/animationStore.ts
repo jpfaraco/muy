@@ -51,6 +51,8 @@ interface AnimationActions {
   setLayerPivot: (layerId: string, pivotX: number, pivotY: number) => void
   /** Update canvas dimensions and background color */
   setCanvasSettings: (canvasWidth: number, canvasHeight: number, backgroundColor: string) => void
+  /** Resize the timeline; truncates or extends frames immutably and clamps currentFrame */
+  setTimelineLength: (frameCount: number) => void
   /** Wrap an ungrouped layer in a new group at the same position */
   groupLayer: (layerId: string) => void
   /** Move a grouped layer out of its group, placing it above the group */
@@ -312,6 +314,24 @@ export const useAnimationStore = create<AnimationStore>()(
     set((state) => ({
       doc: { ...state.doc, canvasWidth, canvasHeight, backgroundColor },
     })),
+
+  setTimelineLength: (frameCount) =>
+    set((state) => {
+      const next = Math.max(1, Math.floor(frameCount))
+      const oldFrames = state.doc.frames
+      let frames: AnimationDoc['frames']
+      if (next === oldFrames.length) {
+        frames = oldFrames
+      } else if (next < oldFrames.length) {
+        frames = oldFrames.slice(0, next)
+      } else {
+        frames = [...oldFrames, ...makeEmptyFrames(next - oldFrames.length)]
+      }
+      return {
+        doc: { ...state.doc, frameCount: next, frames },
+        currentFrame: Math.min(state.currentFrame, next - 1),
+      }
+    }),
 
   groupLayer: (layerId) =>
     set((state) => {

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAnimationStore } from "../store/animationStore";
 import { cn } from "@/lib/utils";
+import { framesToTimecode, timecodeToFrames, formatTimecodeInput } from "@/lib/timecode";
 
 interface Props {
   open: boolean;
@@ -43,11 +44,15 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
   const canvasWidth = useAnimationStore((s) => s.doc.canvasWidth);
   const canvasHeight = useAnimationStore((s) => s.doc.canvasHeight);
   const backgroundColor = useAnimationStore((s) => s.doc.backgroundColor);
+  const frameCount = useAnimationStore((s) => s.doc.frameCount);
+  const fps = useAnimationStore((s) => s.doc.fps);
   const setCanvasSettings = useAnimationStore((s) => s.setCanvasSettings);
+  const setTimelineLength = useAnimationStore((s) => s.setTimelineLength);
 
   const [width, setWidth] = useState(String(canvasWidth));
   const [height, setHeight] = useState(String(canvasHeight));
   const [color, setColor] = useState(backgroundColor);
+  const [timeline, setTimeline] = useState(framesToTimecode(frameCount, fps));
   const [presetOpen, setPresetOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [triggerWidth, setTriggerWidth] = useState<number | undefined>();
@@ -57,8 +62,9 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
       setWidth(String(canvasWidth));
       setHeight(String(canvasHeight));
       setColor(backgroundColor);
+      setTimeline(framesToTimecode(frameCount, fps));
     }
-  }, [open, canvasWidth, canvasHeight, backgroundColor]);
+  }, [open, canvasWidth, canvasHeight, backgroundColor, frameCount, fps]);
 
   const activePreset = findPreset(width, height);
 
@@ -79,6 +85,10 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
     const w = Math.max(1, Math.min(4096, parseInt(width, 10) || canvasWidth));
     const h = Math.max(1, Math.min(4096, parseInt(height, 10) || canvasHeight));
     setCanvasSettings(w, h, color);
+    const parsedFrames = timecodeToFrames(timeline, fps);
+    if (parsedFrames !== null && parsedFrames >= 1) {
+      setTimelineLength(parsedFrames);
+    }
     onOpenChange(false);
   };
 
@@ -159,6 +169,19 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
               />
             </Field>
           </div>
+
+          <Field>
+            <Label htmlFor="timeline-length">Timeline length</Label>
+            <Input
+              id="timeline-length"
+              inputMode="numeric"
+              placeholder="00:10:00"
+              className="font-mono"
+              value={timeline}
+              onChange={(e) => setTimeline(formatTimecodeInput(e.target.value))}
+            />
+            <span className="text-xs text-muted-foreground">mm:ss:ff at {fps} fps</span>
+          </Field>
 
           <Field>
             <Label htmlFor="canvas-bg-text">Background color</Label>
