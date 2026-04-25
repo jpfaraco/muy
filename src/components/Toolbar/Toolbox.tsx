@@ -21,7 +21,7 @@ export function Toolbox() {
     <button
       key={tool}
       aria-label={label}
-      onClick={() => setActiveTool(tool)}
+      onClick={() => setActiveTool(activeTool === tool ? 'select' : tool)}
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-md transition-colors',
         activeTool === tool
