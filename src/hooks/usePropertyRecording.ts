@@ -93,10 +93,10 @@ export function usePropertyRecording(property: PropertyKey) {
         writeFrameValuesRange(lastWritten + 1, frame - 1, gapUpdates)
       }
 
+      const { doc } = useAnimationStore.getState()
       const updates: Array<{ layerId: string; property: PropertyKey; value: number }> = []
       for (const layerId of effectiveHeld) {
-        const entry = layerListEntries?.find((e) => e.layerId === layerId)
-        const factor = entry ? entry.sensitivity / 100 : 1
+        const factor = doc.layers[layerId]?.sensitivity ?? 1
         const prev = liveValuesRef.current[layerId] ?? 0
         const raw = prev + delta * factor
         const bounds = PROPERTY_BOUNDS[property]
@@ -114,7 +114,7 @@ export function usePropertyRecording(property: PropertyKey) {
       writeFrameValues(frame, updates)
       prevWrittenFrameRef.current = frame
     },
-    [property, getEffectiveHeldLayers, getLayerPropsAtFrame, writeFrameValues, writeFrameValuesRange, layerListEntries, setLiveLayerProps],
+    [property, getEffectiveHeldLayers, getLayerPropsAtFrame, writeFrameValues, writeFrameValuesRange, setLiveLayerProps],
   )
 
   const recordAbsolute = useCallback(

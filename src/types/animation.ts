@@ -31,6 +31,8 @@ export interface ImageAsset {
   urls: string[]
 }
 
+export const DEFAULT_LAYER_SENSITIVITY = 1
+
 export interface Layer {
   id: string
   name: string
@@ -45,6 +47,8 @@ export interface Layer {
   /** Rotation pivot offset in local layer space. Non-animatable. Defaults to (0,0). */
   pivotX?: number
   pivotY?: number
+  /** Multiplier applied to all property recording deltas. Default 1. Supports negatives and values > 1. */
+  sensitivity?: number
 }
 
 /**

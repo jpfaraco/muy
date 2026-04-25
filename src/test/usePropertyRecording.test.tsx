@@ -40,6 +40,56 @@ describe('usePropertyRecording', () => {
     })
   })
 
+  it('applies layer.sensitivity as a multiplier for recordDelta', () => {
+    useAnimationStore.getState().setLayerSensitivity('layer-a', 0.5)
+
+    const { result } = renderHook(() => usePropertyRecording('x'))
+
+    act(() => {
+      result.current.startRecording()
+      result.current.recordDelta(100)
+    })
+
+    expect(useAnimationStore.getState().doc.frames[0]['layer-a'].x).toBe(50)
+  })
+
+  it('applies negative sensitivity to invert the delta', () => {
+    useAnimationStore.getState().setLayerSensitivity('layer-a', -1)
+
+    const { result } = renderHook(() => usePropertyRecording('x'))
+
+    act(() => {
+      result.current.startRecording()
+      result.current.recordDelta(50)
+    })
+
+    expect(useAnimationStore.getState().doc.frames[0]['layer-a'].x).toBe(-50)
+  })
+
+  it('applies sensitivity > 1 to amplify the delta', () => {
+    useAnimationStore.getState().setLayerSensitivity('layer-a', 2)
+
+    const { result } = renderHook(() => usePropertyRecording('x'))
+
+    act(() => {
+      result.current.startRecording()
+      result.current.recordDelta(30)
+    })
+
+    expect(useAnimationStore.getState().doc.frames[0]['layer-a'].x).toBe(60)
+  })
+
+  it('uses factor of 1 when layer has no sensitivity set', () => {
+    const { result } = renderHook(() => usePropertyRecording('x'))
+
+    act(() => {
+      result.current.startRecording()
+      result.current.recordDelta(40)
+    })
+
+    expect(useAnimationStore.getState().doc.frames[0]['layer-a'].x).toBe(40)
+  })
+
   it('keeps the live property authoritative across frame advances while recording', async () => {
     const { result } = renderHook(() => usePropertyRecording('x'))
 

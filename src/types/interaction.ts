@@ -19,6 +19,4 @@ export interface FloatingWidget {
 
 export interface LayerListEntry {
   layerId: string
-  /** 0–100 — what percentage of the widget delta applies to this layer */
-  sensitivity: number
 }

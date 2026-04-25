@@ -130,6 +130,40 @@ describe('animationStore', () => {
     expect(useAnimationStore.getState().doc.frameCount).toBe(10)
   })
 
+  describe('setLayerSensitivity', () => {
+    it('sets the sensitivity on the layer immutably', () => {
+      const layerBefore = useAnimationStore.getState().doc.layers['layer-a']
+      useAnimationStore.getState().setLayerSensitivity('layer-a', 0.5)
+
+      const state = useAnimationStore.getState()
+      expect(state.doc.layers['layer-a'].sensitivity).toBe(0.5)
+      expect(state.doc.layers['layer-a']).not.toBe(layerBefore)
+    })
+
+    it('rounds to 2 decimal places', () => {
+      useAnimationStore.getState().setLayerSensitivity('layer-a', 0.1234)
+      expect(useAnimationStore.getState().doc.layers['layer-a'].sensitivity).toBe(0.12)
+
+      useAnimationStore.getState().setLayerSensitivity('layer-a', 1.999)
+      expect(useAnimationStore.getState().doc.layers['layer-a'].sensitivity).toBe(2)
+    })
+
+    it('supports negative values', () => {
+      useAnimationStore.getState().setLayerSensitivity('layer-a', -1)
+      expect(useAnimationStore.getState().doc.layers['layer-a'].sensitivity).toBe(-1)
+    })
+
+    it('supports values above 1', () => {
+      useAnimationStore.getState().setLayerSensitivity('layer-a', 3.5)
+      expect(useAnimationStore.getState().doc.layers['layer-a'].sensitivity).toBe(3.5)
+    })
+
+    it('does not affect other layers', () => {
+      useAnimationStore.getState().setLayerSensitivity('layer-a', 0.5)
+      expect(useAnimationStore.getState().doc.layers['layer-b'].sensitivity).toBeUndefined()
+    })
+  })
+
   describe('undo/redo', () => {
     beforeEach(() => {
       useAnimationStore.temporal.getState().clear()

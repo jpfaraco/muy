@@ -37,6 +37,8 @@ interface InteractionState {
   liveLayerProps: Record<string, Partial<LayerProps>>
   /** Active layer reorder drag state */
   reorderDrag: { draggingLayerIds: string[]; insertBefore: string | null; insertParent: string | null } | null
+  /** Whether the sensitivity scrubbers are visible in the layers panel */
+  showLayerSensitivity: boolean
 }
 
 interface InteractionActions {
@@ -59,7 +61,7 @@ interface InteractionActions {
   selectLayers: (ids: string[]) => void
   setLayerListEntries: (entries: LayerListEntry[] | null) => void
   addLayerToList: (layerId: string) => void
-  setLayerSensitivity: (layerId: string, sensitivity: number) => void
+  setShowLayerSensitivity: (show: boolean) => void
   setCanvasDragActive: (active: boolean) => void
   setLiveLayerProps: (updates: Array<{ layerId: string; props: Partial<LayerProps> }>) => void
   startReorder: (layerIds: string[]) => void
@@ -90,6 +92,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   canvasDragActive: false,
   liveLayerProps: {},
   reorderDrag: null,
+  showLayerSensitivity: false,
 
   setActiveTool: (tool) => {
     const modeMap: Record<ActiveTool, AppMode> = {
@@ -208,16 +211,11 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       if (!state.layerListEntries) return {}
       if (state.layerListEntries.some((e) => e.layerId === layerId)) return {}
       return {
-        layerListEntries: [...state.layerListEntries, { layerId, sensitivity: 100 }],
+        layerListEntries: [...state.layerListEntries, { layerId }],
       }
     }),
 
-  setLayerSensitivity: (layerId, sensitivity) =>
-    set((state) => ({
-      layerListEntries: state.layerListEntries?.map((e) =>
-        e.layerId === layerId ? { ...e, sensitivity } : e
-      ) ?? null,
-    })),
+  setShowLayerSensitivity: (showLayerSensitivity) => set({ showLayerSensitivity }),
 
   setCanvasDragActive: (canvasDragActive) => set({ canvasDragActive }),
 

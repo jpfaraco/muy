@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { SensitivityScrubber } from "./SensitivityScrubber";
 import type { Layer } from "../../types/animation";
 
 interface Props {
@@ -35,6 +36,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   const heldGroupIds = useInteractionStore((s) => s.heldGroupIds);
   const selectedLayerIds = useInteractionStore((s) => s.selectedLayerIds);
   const reorderDrag = useInteractionStore((s) => s.reorderDrag);
+  const showLayerSensitivity = useInteractionStore((s) => s.showLayerSensitivity);
   const { holdLayer, releaseLayer, releaseAllLayers, holdGroup, releaseGroup, addLayerToList, layerListEntries, startReorder } = useInteractionStore();
   const [isExpanded, setIsExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -219,6 +221,10 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         )}
 
         {isRenaming ? <input autoFocus defaultValue={layer.name} className="flex-1 truncate bg-transparent outline-none ring-1 ring-blue-400 rounded px-1" onFocus={(e) => e.currentTarget.select()} onBlur={(e) => handleRenameCommit(e.currentTarget.value)} onKeyDown={handleRenameKeyDown} onPointerDown={(e) => e.stopPropagation()} /> : <span className="flex-1 truncate">{layer.name}</span>}
+
+        {showLayerSensitivity && layer.type === "layer" && (
+          <SensitivityScrubber layerId={layerId} value={layer.sensitivity ?? 1} />
+        )}
 
         {/* Kebab menu */}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>

@@ -49,6 +49,8 @@ interface AnimationActions {
   createVectorLayer: () => string
   /** Set the pivot offset (local space) for a layer */
   setLayerPivot: (layerId: string, pivotX: number, pivotY: number) => void
+  /** Set the sensitivity multiplier for a layer (rounded to 2 decimals) */
+  setLayerSensitivity: (layerId: string, sensitivity: number) => void
   /** Update canvas dimensions and background color */
   setCanvasSettings: (canvasWidth: number, canvasHeight: number, backgroundColor: string) => void
   /** Resize the timeline; truncates or extends frames immutably and clamps currentFrame */
@@ -309,6 +311,19 @@ export const useAnimationStore = create<AnimationStore>()(
         },
       },
     })),
+
+  setLayerSensitivity: (layerId, sensitivity) => {
+    const rounded = Math.round(sensitivity * 100) / 100
+    set((state) => ({
+      doc: {
+        ...state.doc,
+        layers: {
+          ...state.doc.layers,
+          [layerId]: { ...state.doc.layers[layerId], sensitivity: rounded },
+        },
+      },
+    }))
+  },
 
   setCanvasSettings: (canvasWidth, canvasHeight, backgroundColor) =>
     set((state) => ({

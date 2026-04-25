@@ -100,34 +100,22 @@ describe('interactionStore', () => {
 
   describe('layer list', () => {
     it('setLayerListEntries sets entries', () => {
-      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a', sensitivity: 100 }])
+      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a' }])
       expect(useInteractionStore.getState().layerListEntries).toHaveLength(1)
     })
 
     it('addLayerToList appends a new layer', () => {
-      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a', sensitivity: 100 }])
+      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a' }])
       useInteractionStore.getState().addLayerToList('b')
       const entries = useInteractionStore.getState().layerListEntries
       expect(entries).toHaveLength(2)
       expect(entries?.[1].layerId).toBe('b')
-      expect(entries?.[1].sensitivity).toBe(100)
     })
 
     it('addLayerToList does not duplicate', () => {
-      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a', sensitivity: 100 }])
+      useInteractionStore.getState().setLayerListEntries([{ layerId: 'a' }])
       useInteractionStore.getState().addLayerToList('a')
       expect(useInteractionStore.getState().layerListEntries).toHaveLength(1)
-    })
-
-    it('setLayerSensitivity updates only the matching layer', () => {
-      useInteractionStore.getState().setLayerListEntries([
-        { layerId: 'a', sensitivity: 100 },
-        { layerId: 'b', sensitivity: 100 },
-      ])
-      useInteractionStore.getState().setLayerSensitivity('a', 50)
-      const entries = useInteractionStore.getState().layerListEntries!
-      expect(entries.find((e) => e.layerId === 'a')?.sensitivity).toBe(50)
-      expect(entries.find((e) => e.layerId === 'b')?.sensitivity).toBe(100)
     })
   })
 
@@ -140,8 +128,8 @@ describe('interactionStore', () => {
     it('returns list entries when list widget is active', () => {
       useInteractionStore.getState().holdLayer('a')
       useInteractionStore.getState().setLayerListEntries([
-        { layerId: 'b', sensitivity: 100 },
-        { layerId: 'c', sensitivity: 50 },
+        { layerId: 'b' },
+        { layerId: 'c' },
       ])
       expect(useInteractionStore.getState().getEffectiveHeldLayers()).toEqual(['b', 'c'])
     })

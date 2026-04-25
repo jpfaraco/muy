@@ -499,10 +499,10 @@ export function DrawingLayer() {
           }
           writeFrameValuesRange(lastWritten + 1, frame - 1, gapUpdates)
         }
+        const { doc: currentDoc } = useAnimationStore.getState()
         const updates: Array<{ layerId: string; property: 'x' | 'y'; value: number }> = []
         for (const layerId of effectiveHeld) {
-          const entry = layerListEntries?.find((e) => e.layerId === layerId)
-          const factor = entry ? entry.sensitivity / 100 : 1
+          const factor = currentDoc.layers[layerId]?.sensitivity ?? 1
           const live = livePositionsRef.current[layerId] ?? { x: 0, y: 0 }
           const nextX = live.x + dx * factor
           const nextY = live.y + dy * factor

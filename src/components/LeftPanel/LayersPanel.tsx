@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Settings2 } from 'lucide-react'
 import { useAnimationStore } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
 import { LayerTreeItem } from './LayerTreeItem'
@@ -11,7 +11,8 @@ export function LayersPanel() {
   const doc = useAnimationStore((s) => s.doc)
   const { reorderLayers, setDoc } = useAnimationStore()
   const reorderDrag = useInteractionStore((s) => s.reorderDrag)
-  const { updateReorderInsert, endReorder } = useInteractionStore()
+  const showLayerSensitivity = useInteractionStore((s) => s.showLayerSensitivity)
+  const { updateReorderInsert, endReorder, setShowLayerSensitivity } = useInteractionStore()
   const [insertionLineY, setInsertionLineY] = useState<number | null>(null)
   const [insertionLineLeft, setInsertionLineLeft] = useState(12)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -195,7 +196,18 @@ export function LayersPanel() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground"
+          className={`h-6 w-6 ${showLayerSensitivity ? 'text-foreground' : 'text-muted-foreground'}`}
+          aria-label="Toggle sensitivity"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setShowLayerSensitivity(!showLayerSensitivity)}
+        >
+          <Settings2 className="h-4 w-4" />
+        </Button>
+        <div className="w-1" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
           aria-label="Import image"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => importInputRef.current?.click()}
