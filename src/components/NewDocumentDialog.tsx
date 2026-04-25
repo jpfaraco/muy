@@ -19,10 +19,12 @@ interface Props {
 
 export function NewDocumentDialog({ open, onOpenChange }: Props) {
   const setDoc = useAnimationStore((s) => s.setDoc)
+  const setCurrentFrame = useAnimationStore((s) => s.setCurrentFrame)
   const clearHeldLayers = useInteractionStore((s) => s.setHeldLayers)
 
   const handleConfirm = () => {
     setDoc(initialDoc)
+    setCurrentFrame(0)
     useAnimationStore.temporal.getState().clear()
     clearHeldLayers([])
     onOpenChange(false)
