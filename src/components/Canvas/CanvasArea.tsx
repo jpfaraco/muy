@@ -17,8 +17,8 @@ export function CanvasArea() {
     <div
       ref={containerRef}
       className="relative flex-1 overflow-hidden"
-      style={{ cursor: activeTool === 'hand' ? 'grab' : undefined }}
       style={{
+        cursor: activeTool === 'hand' ? 'grab' : undefined,
         backgroundColor: "hsl(var(--muted))",
         backgroundImage: "radial-gradient(circle, rgba(128,128,128,0.2) 1px, transparent 1px)",
         backgroundSize: "20px 20px",

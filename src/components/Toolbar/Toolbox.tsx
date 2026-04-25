@@ -71,7 +71,7 @@ export function Toolbox() {
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => zoomByFactor(CANVAS_ZOOM_STEP)}>Zoom in</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => zoomByFactor(1 / CANVAS_ZOOM_STEP)}>Zoom out</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setZoomPreset(1)}>Zoom to 100%</DropdownMenuItem>
