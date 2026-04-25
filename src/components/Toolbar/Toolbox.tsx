@@ -64,7 +64,7 @@ export function Toolbox() {
         <DropdownMenuTrigger asChild>
           <button
             aria-label="Zoom"
-            className="flex h-10 w-[78px] items-center justify-between gap-1.5 rounded-md bg-background px-2 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-accent/50"
+            className="flex h-10 w-[78px] items-center justify-between gap-1.5 rounded-md bg-transparent px-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50"
           >
             <span>{Math.round(zoom * 100)}%</span>
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
