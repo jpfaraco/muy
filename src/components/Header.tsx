@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/button'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { ExportVideoDialog } from './ExportVideoDialog'
 import { HelpDialog } from './HelpDialog'
+import { NewDocumentDialog } from './NewDocumentDialog'
 import { cn } from '@/lib/utils'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
 import { getFlatRenderIds, useAnimationHistory, useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
 
-type MenuItem = { label: string; onClick?: () => void; disabled?: boolean } | { separator: true }
+type MenuItem = { label: string; onClick?: () => void; disabled?: boolean; soon?: boolean } | { separator: true }
 
 interface MenuDef {
   label: string
@@ -42,7 +43,12 @@ function MenuButton({ label, items }: MenuDef) {
             <DropdownMenuSeparator key={i} />
           ) : (
             <DropdownMenuItem key={item.label} onSelect={item.onClick} disabled={item.disabled}>
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.soon && (
+                <span className="ml-3 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+                  Soon
+                </span>
+              )}
             </DropdownMenuItem>
           ),
         )}
@@ -52,6 +58,7 @@ function MenuButton({ label, items }: MenuDef) {
 }
 
 export function Header() {
+  const [newDocOpen, setNewDocOpen] = useState(false)
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
   const [exportVideoOpen, setExportVideoOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -67,11 +74,10 @@ export function Header() {
     {
       label: 'File',
       items: [
-        { label: 'New' },
-        { label: 'Open…' },
-        { separator: true },
+        { label: 'New', onClick: () => setNewDocOpen(true) },
+        { label: 'Open…', disabled: true, soon: true },
+        { label: 'Save…', disabled: true, soon: true },
         { label: 'Canvas settings…', onClick: () => setCanvasSettingsOpen(true) },
-        { separator: true },
         { label: 'Export video…', onClick: () => setExportVideoOpen(true) },
       ],
     },
@@ -141,6 +147,7 @@ export function Header() {
         </button>
       </header>
 
+      <NewDocumentDialog open={newDocOpen} onOpenChange={setNewDocOpen} />
       <CanvasSettingsDialog open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen} />
       <ExportVideoDialog open={exportVideoOpen} onOpenChange={setExportVideoOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
