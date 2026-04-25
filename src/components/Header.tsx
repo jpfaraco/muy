@@ -63,6 +63,7 @@ export function Header() {
   const [exportVideoOpen, setExportVideoOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
+  const setZoomPreset = useCanvasViewStore((s) => s.setZoomPreset)
   const fit = useCanvasViewStore((s) => s.fit)
   const doc = useAnimationStore((s) => s.doc)
   const setHeldLayers = useInteractionStore((s) => s.setHeldLayers)
@@ -103,7 +104,8 @@ export function Header() {
       items: [
         { label: 'Zoom in', onClick: () => zoomByFactor(CANVAS_ZOOM_STEP) },
         { label: 'Zoom out', onClick: () => zoomByFactor(1 / CANVAS_ZOOM_STEP) },
-        { label: 'Fit to screen', onClick: fit },
+        { label: 'Zoom to 100%', onClick: () => setZoomPreset(1) },
+        { label: 'Zoom to fit', onClick: fit },
       ],
     },
   ]
