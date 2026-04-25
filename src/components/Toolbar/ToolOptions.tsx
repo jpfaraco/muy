@@ -242,7 +242,7 @@ function AnimateOptions() {
 export function ToolOptions() {
   const activeTool = useInteractionStore((s) => s.activeTool)
 
-  if (activeTool === 'select') return null
+  if (activeTool === 'select' || activeTool === 'hand') return null
 
   if (activeTool === 'animate') {
     return (
