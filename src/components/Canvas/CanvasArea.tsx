@@ -5,16 +5,19 @@ import { Toolbox } from "../Toolbar/Toolbox";
 import { ToolOptions } from "../Toolbar/ToolOptions";
 import { useAnimationStore } from "../../store/animationStore";
 import { useCanvasTransform } from "../../hooks/useCanvasTransform";
+import { useInteractionStore } from "../../store/interactionStore";
 
 export function CanvasArea() {
   const canvasWidth = useAnimationStore((s) => s.doc.canvasWidth);
   const canvasHeight = useAnimationStore((s) => s.doc.canvasHeight);
+  const activeTool = useInteractionStore((s) => s.activeTool);
   const { zoom, panX, panY, containerRef } = useCanvasTransform(canvasWidth, canvasHeight);
 
   return (
     <div
       ref={containerRef}
       className="relative flex-1 overflow-hidden"
+      style={{ cursor: activeTool === 'hand' ? 'grab' : undefined }}
       style={{
         backgroundColor: "hsl(var(--muted))",
         backgroundImage: "radial-gradient(circle, rgba(128,128,128,0.2) 1px, transparent 1px)",

@@ -4,7 +4,7 @@ import type { LayerProps, PropertyKey } from '../types/animation'
 
 export type AppMode = 'animate' | 'draw'
 export type DrawTool = 'pencil' | 'eraser' | 'move' | 'pivot'
-export type ActiveTool = 'select' | 'pencil' | 'eraser' | 'pivot' | 'animate'
+export type ActiveTool = 'select' | 'hand' | 'pencil' | 'eraser' | 'pivot' | 'animate'
 
 interface InteractionState {
   /** Unified toolbar tool — drives both mode and drawTool */
@@ -97,6 +97,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   setActiveTool: (tool) => {
     const modeMap: Record<ActiveTool, AppMode> = {
       select: 'animate',
+      hand: 'animate',
       pencil: 'draw',
       eraser: 'draw',
       pivot: 'draw',

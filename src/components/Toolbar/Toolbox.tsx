@@ -1,4 +1,4 @@
-import { MousePointer2, Pencil, Eraser, Crosshair, Film, Undo2, Redo2, ChevronsUpDown } from 'lucide-react'
+import { MousePointer2, Hand, Pencil, Eraser, Crosshair, Film, Undo2, Redo2, ChevronsUpDown } from 'lucide-react'
 import { useInteractionStore } from '../../store/interactionStore'
 import { useAnimationHistory, useAnimationStore } from '../../store/animationStore'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../../store/canvasViewStore'
@@ -52,6 +52,7 @@ export function Toolbox() {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-lg">
       {btn('select', MousePointer2, 'Select')}
+      {btn('hand', Hand, 'Hand')}
       {historyBtn(Undo2, 'Undo', canUndo, () => useAnimationStore.temporal.getState().undo())}
       {historyBtn(Redo2, 'Redo', canRedo, () => useAnimationStore.temporal.getState().redo())}
       <div className="h-6 w-px shrink-0 bg-border" />

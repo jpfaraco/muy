@@ -4,6 +4,7 @@ import {
   MIN_CANVAS_ZOOM,
   useCanvasViewStore,
 } from '../store/canvasViewStore'
+import { useInteractionStore } from '../store/interactionStore'
 
 interface Transform {
   zoom: number
@@ -42,8 +43,13 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   transformRef.current = transform
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const activeTool = useInteractionStore((s) => s.activeTool)
+  const activeToolRef = useRef(activeTool)
+  activeToolRef.current = activeTool
+
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>())
   const gestureRef = useRef<GestureState | null>(null)
+  const panDragRef = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const hasFittedRef = useRef(false)
 
   const shouldIgnorePointer = useCallback((e: PointerEvent) => {
@@ -79,6 +85,11 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
 
   const handlePointerDown = useCallback((e: PointerEvent) => {
     if (shouldIgnorePointer(e)) return
+    if (activeToolRef.current === 'hand' && activePointersRef.current.size === 0) {
+      e.stopPropagation()
+      panDragRef.current = { pointerId: e.pointerId, lastX: e.clientX, lastY: e.clientY }
+      return
+    }
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (activePointersRef.current.size === 2) {
       const [p1, p2] = [...activePointersRef.current.values()]
@@ -96,6 +107,14 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   }, [shouldIgnorePointer])
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (panDragRef.current?.pointerId === e.pointerId) {
+      e.stopPropagation()
+      const { lastX, lastY } = panDragRef.current
+      const { panX, panY } = transformRef.current
+      setTransform({ ...transformRef.current, panX: panX + e.clientX - lastX, panY: panY + e.clientY - lastY })
+      panDragRef.current = { ...panDragRef.current, lastX: e.clientX, lastY: e.clientY }
+      return
+    }
     if (!activePointersRef.current.has(e.pointerId)) return
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (activePointersRef.current.size < 2 || !gestureRef.current) return
@@ -122,6 +141,10 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   }, [setTransform])
 
   const handlePointerUp = useCallback((e: PointerEvent) => {
+    if (panDragRef.current?.pointerId === e.pointerId) {
+      panDragRef.current = null
+      return
+    }
     activePointersRef.current.delete(e.pointerId)
     if (activePointersRef.current.size < 2) gestureRef.current = null
   }, [])
@@ -129,6 +152,7 @@ export function useCanvasTransform(canvasWidth: number, canvasHeight: number): C
   const clearGestureState = useCallback(() => {
     activePointersRef.current.clear()
     gestureRef.current = null
+    panDragRef.current = null
   }, [])
 
   useEffect(() => {
