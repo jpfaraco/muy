@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
 import { LayersPanel } from './LayersPanel'
+import { useInteractionStore } from '../../store/interactionStore'
 
 const MIN_WIDTH = 160
 const MAX_WIDTH = 480
 const DEFAULT_WIDTH = 256
 
 export function LeftPanel() {
+  const releaseAllLayers = useInteractionStore((s) => s.releaseAllLayers)
   const [width, setWidth] = useState(DEFAULT_WIDTH)
   const dragStartX = useRef<number | null>(null)
   const dragStartWidth = useRef<number>(DEFAULT_WIDTH)
@@ -41,7 +43,7 @@ export function LeftPanel() {
       className="relative flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar"
       style={{ width }}
     >
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto" onPointerDown={() => releaseAllLayers()}>
         <LayersPanel />
       </div>
 

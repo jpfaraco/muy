@@ -180,7 +180,7 @@ export function LayersPanel() {
   }, [isReordering])
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" onPointerDown={(e) => e.stopPropagation()}>
       {/* Panel header */}
       <div className="flex h-10 items-center pl-3 pr-2">
         <span className="flex-1 truncate text-sm font-semibold text-foreground">Layers</span>
