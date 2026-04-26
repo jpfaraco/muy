@@ -78,10 +78,12 @@ function StrokeWidthPreview({
 }
 
 function PencilOptions() {
-  const drawColor   = useInteractionStore((s) => s.drawColor)
-  const pencilWidth = useInteractionStore((s) => s.pencilWidth)
-  const setDrawColor   = useInteractionStore((s) => s.setDrawColor)
-  const setPencilWidth = useInteractionStore((s) => s.setPencilWidth)
+  const drawColor        = useInteractionStore((s) => s.drawColor)
+  const pencilWidth      = useInteractionStore((s) => s.pencilWidth)
+  const pencilSmoothing  = useInteractionStore((s) => s.pencilSmoothing)
+  const setDrawColor     = useInteractionStore((s) => s.setDrawColor)
+  const setPencilWidth   = useInteractionStore((s) => s.setPencilWidth)
+  const setPencilSmoothing = useInteractionStore((s) => s.setPencilSmoothing)
   const [showPreview, setShowPreview] = useState(false)
 
   return (
@@ -137,6 +139,32 @@ function PencilOptions() {
           onPointerUp={() => setShowPreview(false)}
           onPointerCancel={() => setShowPreview(false)}
           className="h-1.5 w-36 cursor-pointer accent-foreground"
+          style={{ touchAction: 'auto' }}
+        />
+      </div>
+
+      {/* Separator */}
+      <div className="h-6 w-px shrink-0 bg-border" />
+
+      {/* Smoothness */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Smooth</span>
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          value={pencilSmoothing}
+          onChange={(e) => setPencilSmoothing(Math.min(100, Math.max(0, Number(e.target.value))))}
+          className="h-6 w-14 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={pencilSmoothing}
+          onChange={(e) => setPencilSmoothing(Number(e.target.value))}
+          className="h-1.5 w-28 cursor-pointer accent-foreground"
           style={{ touchAction: 'auto' }}
         />
       </div>

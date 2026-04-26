@@ -202,6 +202,7 @@ export function DrawingLayer() {
   const drawTool = useInteractionStore((s) => s.drawTool)
   const drawColor = useInteractionStore((s) => s.drawColor)
   const drawWidth = useInteractionStore((s) => s.drawWidth)
+  const pencilSmoothing = useInteractionStore((s) => s.pencilSmoothing)
   const liveLayerProps = useInteractionStore((s) => s.liveLayerProps)
   const setLiveLayerProps = useInteractionStore((s) => s.setLiveLayerProps)
   const clearLiveLayerProps = useInteractionStore((s) => s.clearLiveLayerProps)
@@ -232,6 +233,7 @@ export function DrawingLayer() {
   const [livePoints, setLivePoints] = useState<Point[]>([])
   const liveColorRef = useRef(drawColor)
   const liveWidthRef = useRef(drawWidth)
+  const liveSmoothingRef = useRef(pencilSmoothing)
   const targetLayerIdRef = useRef<string | null>(null)
   const moveDragRef = useRef<MoveDrag | null>(null)
   const isErasingRef = useRef(false)
@@ -468,13 +470,14 @@ export function DrawingLayer() {
       targetLayerIdRef.current = targetId
       liveColorRef.current = drawColor
       liveWidthRef.current = drawWidth
+      liveSmoothingRef.current = pencilSmoothing
 
       const canvasPos = toCanvasCoords(e.clientX, e.clientY)
       const localPt = toLayerLocal(canvasPos, targetId)
       setLivePoints([localPt])
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isActive, heldVectorLayerId, createVectorLayer, holdLayer, toCanvasCoords, drawTool, drawColor, drawWidth, setLayerPivot, getEffectiveHeldLayers, getLayerPropsAtFrame, setLiveLayerProps, setCanvasDragActive],
+    [isActive, heldVectorLayerId, createVectorLayer, holdLayer, toCanvasCoords, drawTool, drawColor, drawWidth, pencilSmoothing, setLayerPivot, getEffectiveHeldLayers, getLayerPropsAtFrame, setLiveLayerProps, setCanvasDragActive],
   )
 
   const handlePointerMove = useCallback(
@@ -615,7 +618,7 @@ export function DrawingLayer() {
     // ── Commit pencil stroke ──
     const targetId = targetLayerIdRef.current
     if (livePoints.length > 0 && targetId) {
-      const stroke = fitStroke(livePoints, 'pencil', liveColorRef.current, liveWidthRef.current)
+      const stroke = fitStroke(livePoints, 'pencil', liveColorRef.current, liveWidthRef.current, liveSmoothingRef.current)
       if (stroke) addStroke(targetId, stroke)
     }
     setLivePoints([])

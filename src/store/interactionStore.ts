@@ -17,6 +17,8 @@ interface InteractionState {
   drawColor: string
   /** Pencil stroke width (1–64) */
   pencilWidth: number
+  /** Pencil smoothing (0–100); 0 = default fidelity, 100 = maximum smoothing */
+  pencilSmoothing: number
   /** Eraser stroke width (1–128) */
   eraserWidth: number
   /** Active stroke width forwarded to DrawingLayer (mirrors pencilWidth or eraserWidth) */
@@ -47,6 +49,7 @@ interface InteractionActions {
   setDrawTool: (tool: DrawTool) => void
   setDrawColor: (color: string) => void
   setPencilWidth: (width: number) => void
+  setPencilSmoothing: (smoothing: number) => void
   setEraserWidth: (width: number) => void
   setHeldLayers: (layerIds: string[]) => void
   holdLayer: (layerId: string) => void
@@ -82,6 +85,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   drawTool: 'pencil',
   drawColor: '#000000',
   pencilWidth: 16,
+  pencilSmoothing: 0,
   eraserWidth: 32,
   drawWidth: 16,
   heldLayerIds: [],
@@ -126,6 +130,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       pencilWidth,
       ...(state.activeTool === 'pencil' ? { drawWidth: pencilWidth } : {}),
     })),
+  setPencilSmoothing: (pencilSmoothing) => set({ pencilSmoothing }),
   setEraserWidth: (eraserWidth) =>
     set((state) => ({
       eraserWidth,

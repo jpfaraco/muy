@@ -3,8 +3,77 @@ import fitCurve from 'fit-curve'
 import type { Point, CubicSegment, Stroke } from '../types/animation'
 
 const SIMPLIFY_TOLERANCE = 1.0
-const FIT_ERROR = 2.0
+const FIT_ERROR_MIN = 2.0
+const FIT_ERROR_MAX = 9.0
+const SMOOTH_PASSES_MIN = 4
+const SMOOTH_PASSES_MAX = 140
+const TAUBIN_LAMBDA_MIN = 0.4
+// Capped at ~0.7 — beyond this the Taubin filter becomes numerically unstable
+// (per-pass amplification overcomes shape preservation, producing runaway
+// scribbles or collapsed strokes).
+const TAUBIN_LAMBDA_MAX = 0.7
 export const ERASER_SAMPLES_PER_SEGMENT = 16
+
+/**
+ * Map a 0–100 smoothing value to Taubin pass count, λ, and fit-curve error.
+ *
+ * Two knobs scale together:
+ *  - λ (per-pass aggressiveness) widens the filter's effective stop-band so
+ *    each pass removes more high-frequency content.
+ *  - passes drives convergence — Taubin reaches a plateau once the filter
+ *    asymptote is hit, so we ramp passes alongside λ for visible separation
+ *    across the slider range.
+ *
+ * μ is derived to keep the Taubin pass-band gain near 1 at low frequencies
+ * (no shrinkage). For λ > 0 the standard zero-gain-at-DC condition gives
+ * μ ≈ −λ / (1 − λ·k_pb) with k_pb in (0, 1). We pick μ slightly more
+ * negative than −λ so shape is preserved across the full λ range.
+ */
+function smoothingToParams(smoothing: number): {
+  passes: number
+  fitError: number
+  lambda: number
+  mu: number
+} {
+  const t = Math.max(0, Math.min(100, smoothing)) / 100
+  const lambda = TAUBIN_LAMBDA_MIN + t * (TAUBIN_LAMBDA_MAX - TAUBIN_LAMBDA_MIN)
+  // Anti-shrink coefficient. Slightly larger magnitude than λ keeps the
+  // low-frequency gain at ~1 across the chosen λ range.
+  const mu = -lambda / (1 - 0.1 * lambda)
+  return {
+    passes: smoothing === 0 ? 0 : Math.round(SMOOTH_PASSES_MIN + t * (SMOOTH_PASSES_MAX - SMOOTH_PASSES_MIN)),
+    fitError: FIT_ERROR_MIN + t * (FIT_ERROR_MAX - FIT_ERROR_MIN),
+    lambda,
+    mu,
+  }
+}
+
+/**
+ * Taubin (λ|μ) smoothing. Each pass applies one Laplacian step with weight w.
+ * Endpoints are preserved exactly. Even passes use λ (shrink), odd passes use
+ * μ (anti-shrink) — across pairs of passes the macroscopic shape is preserved
+ * while high-frequency components are attenuated.
+ */
+function smoothPoints(pts: Point[], passes: number, lambda: number, mu: number): Point[] {
+  if (passes <= 0 || pts.length < 3) return pts
+  let cur = pts
+  for (let p = 0; p < passes; p++) {
+    const w = p % 2 === 0 ? lambda : mu
+    const next: Point[] = new Array(cur.length)
+    next[0] = cur[0]
+    for (let i = 1; i < cur.length - 1; i++) {
+      const avgX = (cur[i - 1].x + cur[i + 1].x) / 2
+      const avgY = (cur[i - 1].y + cur[i + 1].y) / 2
+      next[i] = {
+        x: cur[i].x + w * (avgX - cur[i].x),
+        y: cur[i].y + w * (avgY - cur[i].y),
+      }
+    }
+    next[cur.length - 1] = cur[cur.length - 1]
+    cur = next
+  }
+  return cur
+}
 
 /**
  * Angles sharper than this (in degrees) are treated as corners and fitted
@@ -41,6 +110,7 @@ export function fitStroke(
   tool: Stroke['tool'],
   color: string,
   width: number,
+  smoothing = 0,
 ): Stroke | null {
   if (rawPoints.length === 0) return null
 
@@ -61,7 +131,35 @@ export function fitStroke(
     return { tool, color, width, origin: deduped[0], segments: [] }
   }
 
-  const simplified = simplify(deduped, SIMPLIFY_TOLERANCE, true)
+  const { passes, fitError, lambda, mu } = smoothingToParams(smoothing)
+
+  // 1. Detect corners on a lightly-simplified copy. simplify-js returns the
+  //    same Point object references, so we can map indices back to `deduped`.
+  let workingPoints = deduped
+  if (passes > 0 && deduped.length >= 3) {
+    const lightSimplified = simplify(deduped, SIMPLIFY_TOLERANCE, true)
+    const lightPts2d = lightSimplified.map((p) => [p.x, p.y] as [number, number])
+    const lightCorners = detectCorners(lightPts2d)
+    const cornerIdxInDeduped = lightCorners
+      .map((i) => deduped.indexOf(lightSimplified[i]))
+      .filter((i) => i > 0 && i < deduped.length - 1)
+      .sort((a, b) => a - b)
+
+    // 2. Split at corners and smooth each sub-segment in isolation, then
+    //    rejoin (corner points stay exact since they sit at sub-segment ends).
+    const splitsForSmooth = [0, ...cornerIdxInDeduped, deduped.length - 1]
+    const smoothedAll: Point[] = []
+    for (let i = 0; i < splitsForSmooth.length - 1; i++) {
+      const sub = deduped.slice(splitsForSmooth[i], splitsForSmooth[i + 1] + 1)
+      const smoothed = smoothPoints(sub, passes, lambda, mu)
+      if (i === 0) smoothedAll.push(...smoothed)
+      else smoothedAll.push(...smoothed.slice(1))
+    }
+    workingPoints = smoothedAll
+  }
+
+  // 3. Run the standard simplify + corner-detect + fit-curve pipeline.
+  const simplified = simplify(workingPoints, SIMPLIFY_TOLERANCE, true)
 
   if (simplified.length < 2) {
     return { tool, color, width, origin: deduped[0], segments: [] }
@@ -78,7 +176,7 @@ export function fitStroke(
   for (let i = 0; i < splits.length - 1; i++) {
     const sub = pts2d.slice(splits[i], splits[i + 1] + 1)
     if (sub.length >= 2) {
-      const fitted = fitCurve(sub, FIT_ERROR) as Curve[]
+      const fitted = fitCurve(sub, fitError) as Curve[]
       allCurves.push(...fitted)
     }
   }
