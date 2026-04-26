@@ -66,7 +66,9 @@ export function Header() {
   const setZoomPreset = useCanvasViewStore((s) => s.setZoomPreset)
   const fit = useCanvasViewStore((s) => s.fit)
   const doc = useAnimationStore((s) => s.doc)
+  const setLayersHidden = useAnimationStore((s) => s.setLayersHidden)
   const setHeldLayers = useInteractionStore((s) => s.setHeldLayers)
+  const heldLayerIds = useInteractionStore((s) => s.heldLayerIds)
 
   const canUndo = useAnimationHistory((s) => s.pastStates.length > 0)
   const canRedo = useAnimationHistory((s) => s.futureStates.length > 0)
@@ -97,6 +99,20 @@ export function Header() {
         },
         { separator: true },
         { label: 'Select all', onClick: () => setHeldLayers(getFlatRenderIds(doc)) },
+        { separator: true },
+        {
+          label: 'Hide selected layers',
+          disabled: heldLayerIds.length === 0,
+          onClick: () => setLayersHidden(heldLayerIds, true),
+        },
+        {
+          label: 'Show all hidden layers',
+          disabled: !Object.values(doc.layers).some((l) => l.type === 'layer' && l.hidden),
+          onClick: () => setLayersHidden(
+            Object.values(doc.layers).filter((l) => l.type === 'layer' && l.hidden).map((l) => l.id),
+            false,
+          ),
+        },
       ],
     },
     {

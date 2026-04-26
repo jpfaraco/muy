@@ -63,6 +63,8 @@ interface AnimationActions {
   ungroupLayers: (groupId: string) => void
   /** Set hidden on a leaf layer, or on all leaf descendants of a group */
   setLayerHidden: (layerId: string, hidden: boolean) => void
+  /** Batch-set hidden on multiple leaf layers in a single update */
+  setLayersHidden: (leafIds: string[], hidden: boolean) => void
 }
 
 type AnimationStore = AnimationState & AnimationActions
@@ -399,6 +401,17 @@ export const useAnimationStore = create<AnimationStore>()(
         layersWithoutGroup,
       )
       return { doc: { ...state.doc, layers, layerIds } }
+    }),
+
+  setLayersHidden: (leafIds, hidden) =>
+    set((state) => {
+      const idSet = new Set(leafIds)
+      const layers = Object.fromEntries(
+        Object.entries(state.doc.layers).map(([id, layer]) =>
+          idSet.has(id) ? [id, { ...layer, hidden }] : [id, layer]
+        )
+      )
+      return { doc: { ...state.doc, layers } }
     }),
 
   setLayerHidden: (layerId, hidden) =>
