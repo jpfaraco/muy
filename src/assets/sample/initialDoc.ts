@@ -1,5 +1,7 @@
 import type { AnimationDoc, FrameData } from '../../types/animation'
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './sampleScene'
+
+export const CANVAS_WIDTH = 1920
+export const CANVAS_HEIGHT = 1080
 
 const FPS = 24
 const FRAME_COUNT = 240 // 10 seconds

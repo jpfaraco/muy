@@ -1,4 +1,4 @@
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../../assets/sample/sampleScene'
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../../assets/sample/initialDoc'
 import type { PropertyKey } from '../../types/animation'
 import type { Vec2 } from '../../types/interaction'
 
