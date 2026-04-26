@@ -4,7 +4,36 @@ Detailed description of Bret's demo: `_description/description.md` and attached 
 
 **Tech stack:** React 19 + TypeScript, Vite, Zustand 5 + zundo (undo/redo), Tailwind CSS v4, shadcn/ui, Base UI, HTML5 Canvas, Pointer Events API
 
-**UI primitives note:** Prefer Base UI primitives for overlay controls that must work with Apple Pencil on iPad. In this codebase, Base UI fixed Pencil interaction for dropdown menus and dialogs, while the equivalent Radix UI primitives did not. `Popover` is still fine as a Radix primitive.
+## UI components (CRITICAL)
+
+**Always use shadcn/ui for standard UI components. Never build buttons, inputs, dialogs, labels, selects, checkboxes, or other common UI primitives from scratch.**
+
+### Workflow
+
+1. **Check `src/components/ui/` first.** These shadcn components are already installed:
+   - `button` — `Button`
+   - `dialog` — `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`
+   - `dropdown-menu` — `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSeparator`, `DropdownMenuSub`, etc.
+   - `field` — `Field`
+   - `input` — `Input`
+   - `label` — `Label`
+   - `popover` — `Popover`, `PopoverContent`, `PopoverTrigger`
+   - `separator` — `Separator`
+   - `tabs` — `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`
+
+2. **If a needed component is not installed**, install it before writing any code:
+
+   ```bash
+   npx shadcn@latest add <component>
+   ```
+
+   Do **not** hand-roll a substitute — run the CLI.
+
+3. **Use context7 to look up the correct shadcn API** before using a component. Import paths, prop names, and composition patterns differ from the docs of other libraries and must be exact.
+
+4. **Never re-implement shadcn component internals** or copy-paste their markup into a new file. Import the component and compose it.
+
+5. **Exception:** Base UI components (`@base-ui-components/react`) are used for overlay controls (menus, dialogs) that must work with Apple Pencil — see the key constraints above. Do not replace these with shadcn/Radix equivalents.
 
 **Key constraints:**
 
