@@ -180,7 +180,7 @@ export function LayersPanel() {
   }, [isReordering])
 
   return (
-    <div className="flex flex-col" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="flex h-full flex-col" onPointerDown={(e) => e.stopPropagation()}>
       {/* Panel header */}
       <div className="flex h-10 items-center pl-3 pr-2">
         <span className="flex-1 truncate text-sm font-semibold text-foreground">Layers</span>
@@ -219,7 +219,7 @@ export function LayersPanel() {
       {/* Layer tree — reversed so foreground is at the top */}
       <div
         ref={scrollContainerRef}
-        className="relative overflow-y-auto"
+        className="relative flex-1 overflow-y-auto"
         onPointerMove={handlePointerMove}
       >
         {[...topLevelIds].reverse().map((id) => (

@@ -43,7 +43,7 @@ export function LeftPanel() {
       className="relative flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar"
       style={{ width }}
     >
-      <div className="flex flex-1 flex-col overflow-y-auto" onPointerDown={() => releaseAllLayers()}>
+      <div className="flex flex-1 flex-col overflow-hidden" onPointerDown={() => releaseAllLayers()}>
         <LayersPanel />
       </div>
 
