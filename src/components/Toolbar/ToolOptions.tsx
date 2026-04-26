@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Route } from 'lucide-react'
 import { useAnimationStore } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
+import { useCanvasViewStore } from '../../store/canvasViewStore'
 import { PropertyButton } from '../LeftPanel/PropertyButton'
 import type { PropertyKey } from '../../types/animation'
 
@@ -14,6 +15,33 @@ const PROPERTIES: Array<{ key: PropertyKey; label: string; icon: React.ElementTy
   { key: 'transparency', label: 'Alpha',   icon: Blend          },
   { key: 'progress',     label: 'Path',    icon: Route          },
 ]
+
+function useSliderPreview() {
+  const [showPreview, setShowPreview] = useState(false)
+  const isDragging = useRef(false)
+
+  useEffect(() => {
+    const hide = () => {
+      if (isDragging.current) {
+        isDragging.current = false
+        setShowPreview(false)
+      }
+    }
+    document.addEventListener('pointerup', hide)
+    document.addEventListener('pointercancel', hide)
+    return () => {
+      document.removeEventListener('pointerup', hide)
+      document.removeEventListener('pointercancel', hide)
+    }
+  }, [])
+
+  const onPointerDown = () => {
+    isDragging.current = true
+    setShowPreview(true)
+  }
+
+  return { showPreview, onPointerDown }
+}
 
 // Slider track is w-36 = 144px; native thumb is ~14px wide.
 const SLIDER_TRACK_WIDTH = 144
@@ -31,6 +59,7 @@ function StrokeWidthPreview({
   visible,
   color,
   variant,
+  zoom,
 }: {
   value: number
   min: number
@@ -38,10 +67,11 @@ function StrokeWidthPreview({
   visible: boolean
   color?: string
   variant: 'pencil' | 'eraser'
+  zoom: number
 }) {
   if (!visible) return null
 
-  const size = Math.max(8, value)
+  const size = Math.max(8, value * zoom)
   const cx = thumbCenterX(value, min, max)
   // SVG needs a few extra px so the stroke doesn't clip
   const svgPad = 4
@@ -84,7 +114,8 @@ function PencilOptions() {
   const setDrawColor     = useInteractionStore((s) => s.setDrawColor)
   const setPencilWidth   = useInteractionStore((s) => s.setPencilWidth)
   const setPencilSmoothing = useInteractionStore((s) => s.setPencilSmoothing)
-  const [showPreview, setShowPreview] = useState(false)
+  const { showPreview, onPointerDown: onSliderPointerDown } = useSliderPreview()
+  const zoom = useCanvasViewStore((s) => s.zoom)
 
   return (
     <div className="flex items-center gap-4">
@@ -127,6 +158,7 @@ function PencilOptions() {
           visible={showPreview}
           color={drawColor}
           variant="pencil"
+          zoom={zoom}
         />
         <input
           type="range"
@@ -135,9 +167,7 @@ function PencilOptions() {
           step={1}
           value={pencilWidth}
           onChange={(e) => setPencilWidth(Number(e.target.value))}
-          onPointerDown={() => setShowPreview(true)}
-          onPointerUp={() => setShowPreview(false)}
-          onPointerCancel={() => setShowPreview(false)}
+          onPointerDown={onSliderPointerDown}
           className="h-1.5 w-36 cursor-pointer accent-foreground"
           style={{ touchAction: 'auto' }}
         />
@@ -175,7 +205,8 @@ function PencilOptions() {
 function EraserOptions() {
   const eraserWidth = useInteractionStore((s) => s.eraserWidth)
   const setEraserWidth = useInteractionStore((s) => s.setEraserWidth)
-  const [showPreview, setShowPreview] = useState(false)
+  const { showPreview, onPointerDown: onSliderPointerDown } = useSliderPreview()
+  const zoom = useCanvasViewStore((s) => s.zoom)
 
   return (
     <div className="flex items-center gap-4">
@@ -197,6 +228,7 @@ function EraserOptions() {
           max={128}
           visible={showPreview}
           variant="eraser"
+          zoom={zoom}
         />
         <input
           type="range"
@@ -205,9 +237,7 @@ function EraserOptions() {
           step={1}
           value={eraserWidth}
           onChange={(e) => setEraserWidth(Number(e.target.value))}
-          onPointerDown={() => setShowPreview(true)}
-          onPointerUp={() => setShowPreview(false)}
-          onPointerCancel={() => setShowPreview(false)}
+          onPointerDown={onSliderPointerDown}
           className="h-1.5 w-36 cursor-pointer accent-foreground"
           style={{ touchAction: 'auto' }}
         />
