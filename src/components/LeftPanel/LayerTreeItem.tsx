@@ -31,7 +31,7 @@ const CANCEL_DIST_SQ = 100; // 10px radius squared
 
 export function LayerTreeItem({ layerId, depth }: Props) {
   const layer = useAnimationStore((s) => s.doc.layers[layerId]);
-  const { deleteLayer, renameLayer, groupLayer, removeFromGroup, ungroupLayers } = useAnimationStore();
+  const { deleteLayer, renameLayer, groupLayer, removeFromGroup, ungroupLayers, setLayerHidden } = useAnimationStore();
   const heldLayerIds = useInteractionStore((s) => s.heldLayerIds);
   const heldGroupIds = useInteractionStore((s) => s.heldGroupIds);
   const selectedLayerIds = useInteractionStore((s) => s.selectedLayerIds);
@@ -52,6 +52,13 @@ export function LayerTreeItem({ layerId, depth }: Props) {
   // Dim when this layer is being dragged, OR when it belongs to a group being dragged
   const isDragging = (reorderDrag?.draggingLayerIds.includes(layerId) ?? false) ||
     (layer?.parentId !== null && (reorderDrag?.draggingLayerIds.includes(layer?.parentId ?? '') ?? false));
+
+  const isHidden = (() => {
+    if (!layer) return false
+    if (layer.type === 'layer') return layer.hidden === true
+    const leafIds = getDescendantLeafIds(layerId, useAnimationStore.getState().doc.layers)
+    return leafIds.length > 0 && leafIds.every((id) => useAnimationStore.getState().doc.layers[id]?.hidden === true)
+  })()
 
   const handleChevronPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -213,14 +220,14 @@ export function LayerTreeItem({ layerId, depth }: Props) {
         onPointerCancel={handlePointerCancel}
       >
         {layer.type === "group" ? (
-          <button className="flex items-center p-0.5 -ml-0.5" onPointerDown={handleChevronPointerDown}>
+          <button className={cn("flex items-center p-0.5 -ml-0.5", isHidden && "opacity-50")} onPointerDown={handleChevronPointerDown}>
             <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150", isExpanded && "rotate-90")} />
           </button>
         ) : (
-          layerIcon(layer)
+          <span className={cn("shrink-0", isHidden && "opacity-50")}>{layerIcon(layer)}</span>
         )}
 
-        {isRenaming ? <input autoFocus defaultValue={layer.name} className="flex-1 truncate bg-transparent outline-none ring-1 ring-blue-400 rounded px-1" onFocus={(e) => e.currentTarget.select()} onBlur={(e) => handleRenameCommit(e.currentTarget.value)} onKeyDown={handleRenameKeyDown} onPointerDown={(e) => e.stopPropagation()} /> : <span className="flex-1 truncate">{layer.name}</span>}
+        {isRenaming ? <input autoFocus defaultValue={layer.name} className="flex-1 truncate bg-transparent outline-none ring-1 ring-blue-400 rounded px-1" onFocus={(e) => e.currentTarget.select()} onBlur={(e) => handleRenameCommit(e.currentTarget.value)} onKeyDown={handleRenameKeyDown} onPointerDown={(e) => e.stopPropagation()} /> : <span className={cn("flex-1 truncate", isHidden && "opacity-50")}>{layer.name}</span>}
 
         {showLayerSensitivity && layer.type === "layer" && (
           <SensitivityScrubber layerId={layerId} value={layer.sensitivity ?? 1} />
@@ -233,7 +240,7 @@ export function LayerTreeItem({ layerId, depth }: Props) {
               <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-44 p-1" sideOffset={2}>
+          <PopoverContent align="end" className="w-44 p-1" sideOffset={2} onPointerDown={(e) => e.stopPropagation()}>
             {layer.type === 'layer' && layer.parentId === null && (
               <>
                 <button
@@ -267,6 +274,12 @@ export function LayerTreeItem({ layerId, depth }: Props) {
                 <Separator className="my-1" />
               </>
             )}
+            <button
+              className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
+              onClick={() => { setLayerHidden(layerId, !isHidden); setMenuOpen(false); }}
+            >
+              {isHidden ? 'Show' : 'Hide'}
+            </button>
             <button
               className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent focus:outline-none"
               onClick={() => {

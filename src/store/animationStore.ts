@@ -61,6 +61,8 @@ interface AnimationActions {
   removeFromGroup: (layerId: string) => void
   /** Expand a group's children into top-level and delete the group */
   ungroupLayers: (groupId: string) => void
+  /** Set hidden on a leaf layer, or on all leaf descendants of a group */
+  setLayerHidden: (layerId: string, hidden: boolean) => void
 }
 
 type AnimationStore = AnimationState & AnimationActions
@@ -397,6 +399,26 @@ export const useAnimationStore = create<AnimationStore>()(
         layersWithoutGroup,
       )
       return { doc: { ...state.doc, layers, layerIds } }
+    }),
+
+  setLayerHidden: (layerId, hidden) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer) return state
+
+      const collectLeafIds = (id: string): string[] => {
+        const l = state.doc.layers[id]
+        if (!l) return []
+        if (l.type === 'layer') return [id]
+        return (l.childIds ?? []).flatMap(collectLeafIds)
+      }
+
+      const idsToUpdate = layer.type === 'group' ? collectLeafIds(layerId) : [layerId]
+      const updatedLayers = idsToUpdate.reduce(
+        (acc, id) => ({ ...acc, [id]: { ...acc[id], hidden } }),
+        state.doc.layers,
+      )
+      return { doc: { ...state.doc, layers: updatedLayers } }
     }),
 
     }),

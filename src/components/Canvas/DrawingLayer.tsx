@@ -667,6 +667,7 @@ export function DrawingLayer() {
       {layerIds.map((layerId) => {
         const layer = layers[layerId]
         if (!layer || layer.type !== 'layer') return null
+        if (layer.hidden) return null
 
         // ── Image layer ──
         if (layer.imageAssetId) {

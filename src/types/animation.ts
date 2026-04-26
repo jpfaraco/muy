@@ -49,6 +49,8 @@ export interface Layer {
   pivotY?: number
   /** Multiplier applied to all property recording deltas. Default 1. Supports negatives and values > 1. */
   sensitivity?: number
+  /** Whether this layer (or all descendants for groups) is hidden from the canvas. */
+  hidden?: boolean
 }
 
 /**
