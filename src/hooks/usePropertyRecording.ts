@@ -44,6 +44,12 @@ export function usePropertyRecording(property: PropertyKey) {
     const frame = useAnimationStore.getState().currentFrame
     prevWrittenFrameRef.current = frame
     const effectiveHeld = getEffectiveHeldLayers()
+    if (property === 'rotation' || property === 'scale') {
+      const markPivotUserOwned = useAnimationStore.getState().markPivotUserOwned
+      for (const layerId of effectiveHeld) {
+        markPivotUserOwned(layerId)
+      }
+    }
     const snapshot: Record<string, number> = {}
     for (const layerId of effectiveHeld) {
       snapshot[layerId] = getLayerPropsAtFrame(layerId, frame)[property]

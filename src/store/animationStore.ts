@@ -3,6 +3,7 @@ import { temporal } from 'zundo'
 import type { TemporalState } from 'zundo'
 import type { AnimationDoc, Layer, LayerProps, PropertyKey, Stroke } from '../types/animation'
 import { DEFAULT_LAYER_PROPS } from '../types/animation'
+import { computeStrokeBounds } from '../utils/strokeBounds'
 
 /** DFS-expand top-level layerIds to flat leaf render order */
 export function getFlatRenderIds(doc: AnimationDoc): string[] {
@@ -49,6 +50,8 @@ interface AnimationActions {
   createVectorLayer: () => string
   /** Set the pivot offset (local space) for a layer */
   setLayerPivot: (layerId: string, pivotX: number, pivotY: number) => void
+  /** Mark the pivot as user-owned, stopping future auto-center on stroke */
+  markPivotUserOwned: (layerId: string) => void
   /** Set the sensitivity multiplier for a layer (rounded to 2 decimals) */
   setLayerSensitivity: (layerId: string, sensitivity: number) => void
   /** Update canvas dimensions and background color */
@@ -144,12 +147,30 @@ export const useAnimationStore = create<AnimationStore>()(
   },
 
   addStroke: (layerId, stroke) =>
-    set((state) => ({
-      drawStrokes: {
-        ...state.drawStrokes,
-        [layerId]: [...(state.drawStrokes[layerId] ?? []), stroke],
-      },
-    })),
+    set((state) => {
+      const updatedStrokes = [...(state.drawStrokes[layerId] ?? []), stroke]
+      const layer = state.doc.layers[layerId]
+      const shouldAutoCenter = layer?.layerType === 'vector' && !layer?.pivotUserOwned
+      if (!shouldAutoCenter) {
+        return { drawStrokes: { ...state.drawStrokes, [layerId]: updatedStrokes } }
+      }
+      const bounds = computeStrokeBounds(updatedStrokes)
+      if (!bounds) {
+        return { drawStrokes: { ...state.drawStrokes, [layerId]: updatedStrokes } }
+      }
+      const pivotX = (bounds.minX + bounds.maxX) / 2
+      const pivotY = (bounds.minY + bounds.maxY) / 2
+      return {
+        drawStrokes: { ...state.drawStrokes, [layerId]: updatedStrokes },
+        doc: {
+          ...state.doc,
+          layers: {
+            ...state.doc.layers,
+            [layerId]: { ...layer, pivotX, pivotY },
+          },
+        },
+      }
+    }),
 
   writeFrameValuesRange: (fromFrame, toFrame, updates) =>
     set((state) => {
@@ -315,6 +336,21 @@ export const useAnimationStore = create<AnimationStore>()(
         },
       },
     })),
+
+  markPivotUserOwned: (layerId) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer || layer.pivotUserOwned) return state
+      return {
+        doc: {
+          ...state.doc,
+          layers: {
+            ...state.doc.layers,
+            [layerId]: { ...layer, pivotUserOwned: true },
+          },
+        },
+      }
+    }),
 
   setLayerSensitivity: (layerId, sensitivity) => {
     const rounded = Math.round(sensitivity * 100) / 100

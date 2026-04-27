@@ -7,6 +7,7 @@ import { useInteractionStore } from '../../store/interactionStore'
 import { useCanvasViewStore } from '../../store/canvasViewStore'
 import { PropertyButton } from '../LeftPanel/PropertyButton'
 import type { PropertyKey } from '../../types/animation'
+import { computeStrokeBounds } from '../../utils/strokeBounds'
 
 const PROPERTIES: Array<{ key: PropertyKey; label: string; icon: React.ElementType }> = [
   { key: 'x',            label: 'Move X',  icon: MoveHorizontal },
@@ -218,21 +219,9 @@ function PivotOptions() {
   function handleAutoCenter() {
     if (!targetLayerId) return
     const strokes = drawStrokes[targetLayerId] ?? []
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-    const expand = (x: number, y: number) => {
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    }
-    for (const stroke of strokes) {
-      expand(stroke.origin.x, stroke.origin.y)
-      for (const seg of stroke.segments) {
-        expand(seg.end.x, seg.end.y)
-      }
-    }
-    if (!isFinite(minX)) return
-    setLayerPivot(targetLayerId, (minX + maxX) / 2, (minY + maxY) / 2)
+    const bounds = computeStrokeBounds(strokes)
+    if (!bounds) return
+    setLayerPivot(targetLayerId, (bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2)
   }
 
   return (

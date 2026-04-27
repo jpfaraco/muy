@@ -216,6 +216,7 @@ export function DrawingLayer() {
   const backgroundColor = useAnimationStore((s) => s.doc.backgroundColor)
   const isPlaying = useAnimationStore((s) => s.isPlaying)
   const setLayerPivot = useAnimationStore((s) => s.setLayerPivot)
+  const markPivotUserOwned = useAnimationStore((s) => s.markPivotUserOwned)
   const drawStrokes = useAnimationStore((s) => s.drawStrokes)
   const addStroke = useAnimationStore((s) => s.addStroke)
   const replaceLayerStrokes = useAnimationStore((s) => s.replaceLayerStrokes)
@@ -447,6 +448,7 @@ export function DrawingLayer() {
         const canvasPos = toCanvasCoords(e.clientX, e.clientY)
         const props = useAnimationStore.getState().getLayerPropsAtFrame(targetId, useAnimationStore.getState().currentFrame)
         const full = { ...DEFAULT_LAYER_PROPS, ...props }
+        markPivotUserOwned(targetId)
         setLayerPivot(targetId, canvasPos.x - full.x, canvasPos.y - full.y)
         return
       }

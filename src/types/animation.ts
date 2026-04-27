@@ -47,6 +47,11 @@ export interface Layer {
   /** Rotation pivot offset in local layer space. Non-animatable. Defaults to (0,0). */
   pivotX?: number
   pivotY?: number
+  /**
+   * True once the user has manually placed the pivot, or animated rotation/scale.
+   * While false, addStroke re-centers the pivot automatically after each stroke.
+   */
+  pivotUserOwned?: boolean
   /** Multiplier applied to all property recording deltas. Default 1. Supports negatives and values > 1. */
   sensitivity?: number
   /** Whether this layer (or all descendants for groups) is hidden from the canvas. */
