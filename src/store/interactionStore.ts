@@ -15,11 +15,11 @@ interface InteractionState {
   drawTool: DrawTool
   /** Stroke color as CSS hex string */
   drawColor: string
-  /** Pencil stroke width (1–64) */
+  /** Pencil stroke width (1–128) */
   pencilWidth: number
   /** Pencil smoothing (0–100); 0 = default fidelity, 100 = maximum smoothing */
   pencilSmoothing: number
-  /** Eraser stroke width (1–128) */
+  /** Eraser stroke width (1–256) */
   eraserWidth: number
   /** Active stroke width forwarded to DrawingLayer (mirrors pencilWidth or eraserWidth) */
   drawWidth: number
@@ -85,7 +85,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   drawTool: 'pencil',
   drawColor: '#000000',
   pencilWidth: 16,
-  pencilSmoothing: 0,
+  pencilSmoothing: 50,
   eraserWidth: 32,
   drawWidth: 16,
   heldLayerIds: [],

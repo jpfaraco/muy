@@ -182,7 +182,7 @@ export function LayersPanel() {
   return (
     <div className="flex h-full flex-col" onPointerDown={(e) => e.stopPropagation()}>
       {/* Panel header */}
-      <div className="flex h-10 items-center pl-3 pr-2">
+      <div className="flex h-10 items-center gap-2 pl-3 pr-2">
         <span className="flex-1 truncate text-sm font-semibold text-foreground">Layers</span>
 
         <input
@@ -203,7 +203,6 @@ export function LayersPanel() {
         >
           <Settings2 className="h-4 w-4" />
         </Button>
-        <div className="w-1" />
         <Button
           variant="ghost"
           size="icon"

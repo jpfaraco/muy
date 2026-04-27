@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
+import { Scrubber } from '@/components/ui/Scrubber'
 import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Route } from 'lucide-react'
 import { useAnimationStore } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
@@ -16,54 +17,33 @@ const PROPERTIES: Array<{ key: PropertyKey; label: string; icon: React.ElementTy
   { key: 'progress',     label: 'Path',    icon: Route          },
 ]
 
-function useSliderPreview() {
+function useScrubberPreview() {
   const [showPreview, setShowPreview] = useState(false)
-  const isDragging = useRef(false)
+  const lingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    const hide = () => {
-      if (isDragging.current) {
-        isDragging.current = false
-        setShowPreview(false)
-      }
-    }
-    document.addEventListener('pointerup', hide)
-    document.addEventListener('pointercancel', hide)
-    return () => {
-      document.removeEventListener('pointerup', hide)
-      document.removeEventListener('pointercancel', hide)
-    }
+  useEffect(() => () => {
+    if (lingerTimer.current !== null) clearTimeout(lingerTimer.current)
   }, [])
 
-  const onPointerDown = () => {
-    isDragging.current = true
+  const onChangeStart = () => {
+    if (lingerTimer.current !== null) clearTimeout(lingerTimer.current)
     setShowPreview(true)
   }
+  const onChangeEnd = () => {
+    lingerTimer.current = setTimeout(() => setShowPreview(false), 400)
+  }
 
-  return { showPreview, onPointerDown }
-}
-
-// Slider track is w-36 = 144px; native thumb is ~14px wide.
-const SLIDER_TRACK_WIDTH = 144
-const THUMB_WIDTH = 14
-
-function thumbCenterX(value: number, min: number, max: number): number {
-  const fraction = (value - min) / (max - min)
-  return fraction * (SLIDER_TRACK_WIDTH - THUMB_WIDTH) + THUMB_WIDTH / 2
+  return { showPreview, onChangeStart, onChangeEnd }
 }
 
 function StrokeWidthPreview({
   value,
-  min,
-  max,
   visible,
   color,
   variant,
   zoom,
 }: {
   value: number
-  min: number
-  max: number
   visible: boolean
   color?: string
   variant: 'pencil' | 'eraser'
@@ -72,8 +52,6 @@ function StrokeWidthPreview({
   if (!visible) return null
 
   const size = Math.max(8, value * zoom)
-  const cx = thumbCenterX(value, min, max)
-  // SVG needs a few extra px so the stroke doesn't clip
   const svgPad = 4
   const svgSize = size + svgPad * 2
   const svgCx = svgSize / 2
@@ -81,9 +59,8 @@ function StrokeWidthPreview({
 
   return (
     <div
-      className="pointer-events-none absolute"
+      className="pointer-events-none absolute left-1/2 -translate-x-1/2"
       style={{
-        left: variant === 'pencil' ? `${cx - size / 2}px` : `${cx - svgSize / 2}px`,
         bottom: 'calc(100% + 8px)',
         filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.45))',
       }}
@@ -108,18 +85,20 @@ function StrokeWidthPreview({
 }
 
 function PencilOptions() {
-  const drawColor        = useInteractionStore((s) => s.drawColor)
-  const pencilWidth      = useInteractionStore((s) => s.pencilWidth)
-  const pencilSmoothing  = useInteractionStore((s) => s.pencilSmoothing)
-  const setDrawColor     = useInteractionStore((s) => s.setDrawColor)
-  const setPencilWidth   = useInteractionStore((s) => s.setPencilWidth)
+  const drawColor         = useInteractionStore((s) => s.drawColor)
+  const pencilWidth       = useInteractionStore((s) => s.pencilWidth)
+  const pencilSmoothing   = useInteractionStore((s) => s.pencilSmoothing)
+  const setDrawColor      = useInteractionStore((s) => s.setDrawColor)
+  const setPencilWidth    = useInteractionStore((s) => s.setPencilWidth)
   const setPencilSmoothing = useInteractionStore((s) => s.setPencilSmoothing)
-  const { showPreview, onPointerDown: onSliderPointerDown } = useSliderPreview()
-  const zoom = useCanvasViewStore((s) => s.zoom)
+  const zoom              = useCanvasViewStore((s) => s.zoom)
+
+  const widthPreview     = useScrubberPreview()
+  const smoothingPreview = useScrubberPreview()
 
   return (
     <div className="flex items-center gap-4">
-      {/* Color picker — same as Canvas Settings */}
+      {/* Color picker */}
       <div className="flex items-center gap-2">
         <Input
           type="color"
@@ -136,66 +115,52 @@ function PencilOptions() {
         />
       </div>
 
-      {/* Separator */}
       <div className="h-6 w-px shrink-0 bg-border" />
 
-      {/* Width value */}
-      <Input
-        type="number"
-        min={1}
-        max={64}
-        value={pencilWidth}
-        onChange={(e) => setPencilWidth(Math.min(64, Math.max(1, Number(e.target.value))))}
-        className="h-6 w-11 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-      />
-
-      {/* Slider with floating circle preview */}
-      <div className="relative">
-        <StrokeWidthPreview
-          value={pencilWidth}
-          min={1}
-          max={64}
-          visible={showPreview}
-          color={drawColor}
-          variant="pencil"
-          zoom={zoom}
-        />
-        <input
-          type="range"
-          min={1}
-          max={64}
-          step={1}
-          value={pencilWidth}
-          onChange={(e) => setPencilWidth(Number(e.target.value))}
-          onPointerDown={onSliderPointerDown}
-          className="h-1.5 w-36 cursor-pointer accent-foreground"
-          style={{ touchAction: 'auto' }}
-        />
+      {/* Width scrubber */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Size</span>
+        <div className="relative">
+          <StrokeWidthPreview
+            value={pencilWidth}
+            visible={widthPreview.showPreview}
+            color={drawColor}
+            variant="pencil"
+            zoom={zoom}
+          />
+          <Scrubber
+            value={pencilWidth}
+            onChange={setPencilWidth}
+            min={1}
+            max={128}
+            step={1}
+            decimals={0}
+            size="md"
+            width={56}
+            ariaLabel="Stroke width"
+            onChangeStart={widthPreview.onChangeStart}
+            onChangeEnd={widthPreview.onChangeEnd}
+          />
+        </div>
       </div>
 
-      {/* Separator */}
       <div className="h-6 w-px shrink-0 bg-border" />
 
-      {/* Smoothness */}
+      {/* Smoothness scrubber */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Smooth</span>
-        <Input
-          type="number"
-          min={0}
-          max={100}
+        <Scrubber
           value={pencilSmoothing}
-          onChange={(e) => setPencilSmoothing(Math.min(100, Math.max(0, Number(e.target.value))))}
-          className="h-6 w-14 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        />
-        <input
-          type="range"
+          onChange={setPencilSmoothing}
           min={0}
           max={100}
           step={1}
-          value={pencilSmoothing}
-          onChange={(e) => setPencilSmoothing(Number(e.target.value))}
-          className="h-1.5 w-28 cursor-pointer accent-foreground"
-          style={{ touchAction: 'auto' }}
+          decimals={0}
+          size="md"
+          width={56}
+          ariaLabel="Stroke smoothing"
+          onChangeStart={smoothingPreview.onChangeStart}
+          onChangeEnd={smoothingPreview.onChangeEnd}
         />
       </div>
     </div>
@@ -203,44 +168,38 @@ function PencilOptions() {
 }
 
 function EraserOptions() {
-  const eraserWidth = useInteractionStore((s) => s.eraserWidth)
+  const eraserWidth    = useInteractionStore((s) => s.eraserWidth)
   const setEraserWidth = useInteractionStore((s) => s.setEraserWidth)
-  const { showPreview, onPointerDown: onSliderPointerDown } = useSliderPreview()
-  const zoom = useCanvasViewStore((s) => s.zoom)
+  const zoom           = useCanvasViewStore((s) => s.zoom)
+
+  const widthPreview = useScrubberPreview()
 
   return (
     <div className="flex items-center gap-4">
-      {/* Width value */}
-      <Input
-        type="number"
-        min={1}
-        max={128}
-        value={eraserWidth}
-        onChange={(e) => setEraserWidth(Math.min(128, Math.max(1, Number(e.target.value))))}
-        className="h-6 w-11 py-[3px] text-center font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-      />
-
-      {/* Slider with floating circle preview */}
-      <div className="relative">
-        <StrokeWidthPreview
-          value={eraserWidth}
-          min={1}
-          max={128}
-          visible={showPreview}
-          variant="eraser"
-          zoom={zoom}
-        />
-        <input
-          type="range"
-          min={1}
-          max={128}
-          step={1}
-          value={eraserWidth}
-          onChange={(e) => setEraserWidth(Number(e.target.value))}
-          onPointerDown={onSliderPointerDown}
-          className="h-1.5 w-36 cursor-pointer accent-foreground"
-          style={{ touchAction: 'auto' }}
-        />
+      {/* Width scrubber */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Size</span>
+        <div className="relative">
+          <StrokeWidthPreview
+            value={eraserWidth}
+            visible={widthPreview.showPreview}
+            variant="eraser"
+            zoom={zoom}
+          />
+          <Scrubber
+            value={eraserWidth}
+            onChange={setEraserWidth}
+            min={1}
+            max={256}
+            step={1}
+            decimals={0}
+            size="md"
+            width={56}
+            ariaLabel="Eraser size"
+            onChangeStart={widthPreview.onChangeStart}
+            onChangeEnd={widthPreview.onChangeEnd}
+          />
+        </div>
       </div>
     </div>
   )
