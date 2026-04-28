@@ -26,6 +26,7 @@ export async function exportVideo({
   signal,
 }: ExportOptions): Promise<Blob> {
   const { fps, frameCount } = doc
+  await preloadTextFonts(doc)
 
   // AVC/H.264 requires even dimensions; round up by 1 if odd
   const w = doc.canvasWidth % 2 === 0 ? doc.canvasWidth : doc.canvasWidth + 1
@@ -75,4 +76,22 @@ export async function exportVideo({
   if (!target.buffer) throw new Error('Export produced no output')
   const mimeType = format === 'mp4' ? 'video/mp4' : 'video/webm'
   return new Blob([target.buffer], { type: mimeType })
+}
+
+async function preloadTextFonts(doc: AnimationDoc): Promise<void> {
+  const fonts = new Map<string, number>()
+  let needsEmojiFont = false
+
+  for (const layer of Object.values(doc.layers)) {
+    if (layer.type !== 'layer' || layer.layerType !== 'text' || !layer.text) continue
+
+    const existingSize = fonts.get(layer.text.fontFamily) ?? 0
+    fonts.set(layer.text.fontFamily, Math.max(existingSize, layer.text.fontSize))
+    needsEmojiFont = needsEmojiFont || EMOJI_RE.test(layer.text.content)
+  }
+
+  const fontLoads = Array.from(fonts, ([family, size]) => loadFont(family, size))
+  if (needsEmojiFont) fontLoads.push(loadFont(EMOJI_FONT.family))
+
+  await Promise.all(fontLoads)
 }
