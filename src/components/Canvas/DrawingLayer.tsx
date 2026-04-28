@@ -5,6 +5,8 @@ import { DEFAULT_LAYER_PROPS } from '../../types/animation'
 import type { Point, CubicSegment, Stroke } from '../../types/animation'
 import { fitStroke } from '../../utils/strokeFitting'
 import { trimStrokes } from '../../utils/strokeTrim'
+import { visibleText } from '../../utils/textReveal'
+import { loadFont, loadEmojiIfNeeded } from '../../utils/loadFonts'
 
 // ---------------------------------------------------------------------------
 // Image cache (shared module — also used by the video exporter)
@@ -280,6 +282,13 @@ export function DrawingLayer() {
     prevWrittenFrameRef.current = to
   }, [canvasDragActive, currentFrame, writeFrameValues, writeFrameValuesRange])
 
+  const setActiveTool = useInteractionStore((s) => s.setActiveTool)
+  const setHeldLayers = useInteractionStore((s) => s.setHeldLayers)
+  const editingTextLayerId = useInteractionStore((s) => s.editingTextLayerId)
+  const setEditingTextLayerId = useInteractionStore((s) => s.setEditingTextLayerId)
+
+  const createTextLayer = useAnimationStore((s) => s.createTextLayer)
+
   const heldVectorLayerId =
     heldLayerIds.find((id) => {
       const l = layers[id]
@@ -291,6 +300,23 @@ export function DrawingLayer() {
     heldLayerIds.find((id) => layers[id]?.type === 'layer') ?? null
 
   const isActive = mode === 'draw'
+
+  // Text creation drag state — also tracks end position for pointer-up
+  const textDragRef = useRef<{
+    canvasStartX: number
+    canvasStartY: number
+    canvasEndX: number
+    canvasEndY: number
+    screenStartX: number
+    screenStartY: number
+    screenEndX: number
+    screenEndY: number
+    pointerType: string
+  } | null>(null)
+  const [textDragRect, setTextDragRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+
+  // Double-tap tracking for re-opening text edit
+  const lastTapRef = useRef<{ layerId: string; time: number } | null>(null)
 
   const toCanvasCoords = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current
@@ -371,6 +397,79 @@ export function DrawingLayer() {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
+      // If a text editor is open, commit it first. iPadOS does not blur the
+      // contenteditable when the soft keyboard is dismissed, so a canvas tap
+      // must explicitly close the editor for the user to interact.
+      const editingId = useInteractionStore.getState().editingTextLayerId
+      if (editingId) {
+        const ce = document.querySelector<HTMLElement>('[contenteditable="true"]')
+        if (ce) {
+          useAnimationStore.getState().updateTextContent(editingId, ce.innerText)
+          const w = ce.offsetWidth, h = ce.offsetHeight
+          if (w > 0 && h > 0) {
+            useAnimationStore.getState().centerTextPivot(editingId, w, h)
+          }
+          ce.blur()
+        }
+        useInteractionStore.getState().setEditingTextLayerId(null)
+        useAnimationStore.temporal.getState().resume()
+        lastTapRef.current = null
+        // fall through so this same tap can drag, etc.
+      }
+
+      const currentActiveTool = useInteractionStore.getState().activeTool
+
+      // ── Text tool ──
+      if (currentActiveTool === 'text') {
+        // If a text layer is currently selected, tap → edit it.
+        const freshSelected = useInteractionStore.getState().selectedLayerIds
+        const freshLayers = useAnimationStore.getState().doc.layers
+        const selectedTextId = freshSelected.find((id) => freshLayers[id]?.layerType === 'text') ?? null
+        if (selectedTextId) {
+          // Prevent native click default (focus shift to body) so the contenteditable keeps focus.
+          e.preventDefault()
+          setEditingTextLayerId(selectedTextId)
+          return
+        }
+        // Otherwise: drag-or-tap to create a new text layer.
+        e.currentTarget.setPointerCapture(e.pointerId)
+        const canvasPos = toCanvasCoords(e.clientX, e.clientY)
+        textDragRef.current = {
+          canvasStartX: canvasPos.x,
+          canvasStartY: canvasPos.y,
+          canvasEndX: canvasPos.x,
+          canvasEndY: canvasPos.y,
+          screenStartX: e.clientX,
+          screenStartY: e.clientY,
+          screenEndX: e.clientX,
+          screenEndY: e.clientY,
+          pointerType: e.pointerType,
+        }
+        setTextDragRect({ x: canvasPos.x, y: canvasPos.y, w: 0, h: 0 })
+        return
+      }
+
+      // ── Select mode: double-tap a selected text layer to re-open edit ──
+      if (currentActiveTool === 'select') {
+        const freshSelected = useInteractionStore.getState().selectedLayerIds
+        const freshLayers = useAnimationStore.getState().doc.layers
+        const selectedTextId =
+          freshSelected.find((id) => freshLayers[id]?.layerType === 'text') ?? null
+        if (selectedTextId) {
+          const now = Date.now()
+          const last = lastTapRef.current
+          if (last && last.layerId === selectedTextId && now - last.time < 350) {
+            lastTapRef.current = null
+            // Prevent native click default (focus shift to body) so the contenteditable keeps focus.
+            e.preventDefault()
+            setEditingTextLayerId(selectedTextId)
+            return
+          }
+          lastTapRef.current = { layerId: selectedTextId, time: now }
+          // Fall through to animate-drag setup so dragging the text moves it.
+        }
+      }
+
       // ── Animate mode: image layer drag ──
       if (!isActive) {
         const effectiveHeld = getEffectiveHeldLayers()
@@ -484,6 +583,23 @@ export function DrawingLayer() {
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
+      // ── Text tool: update drag rect ──
+      if (textDragRef.current) {
+        const canvasPos = toCanvasCoords(e.clientX, e.clientY)
+        const { canvasStartX, canvasStartY } = textDragRef.current
+        textDragRef.current.canvasEndX = canvasPos.x
+        textDragRef.current.canvasEndY = canvasPos.y
+        textDragRef.current.screenEndX = e.clientX
+        textDragRef.current.screenEndY = e.clientY
+        setTextDragRect({
+          x: Math.min(canvasPos.x, canvasStartX),
+          y: Math.min(canvasPos.y, canvasStartY),
+          w: Math.abs(canvasPos.x - canvasStartX),
+          h: Math.abs(canvasPos.y - canvasStartY),
+        })
+        return
+      }
+
       // ── Animate mode: image layer drag ──
       if (!isActive && animateDragRef.current.active) {
         const pos = toCanvasCoords(e.clientX, e.clientY)
@@ -577,6 +693,34 @@ export function DrawingLayer() {
   )
 
   const handlePointerUp = useCallback(() => {
+    // ── Text tool: commit creation ──
+    if (textDragRef.current) {
+      const drag = textDragRef.current
+      textDragRef.current = null
+      setTextDragRect(null)
+
+      const { textColor: color, textSize: fontSize, textFontFamily: fontFamily } =
+        useInteractionStore.getState()
+      // Use SCREEN-pixel threshold so the gating is consistent across zoom levels.
+      // Stylus drift is much higher than mouse, so allow a larger tolerance for pen.
+      const CLICK_THRESHOLD = drag.pointerType === 'pen' ? 14 : 6
+      const screenDx = Math.abs(drag.screenEndX - drag.screenStartX)
+      const screenDy = Math.abs(drag.screenEndY - drag.screenStartY)
+      const isClick = screenDx < CLICK_THRESHOLD && screenDy < CLICK_THRESHOLD
+      const dragW = Math.abs(drag.canvasEndX - drag.canvasStartX)
+      const x = isClick ? drag.canvasStartX : Math.min(drag.canvasStartX, drag.canvasEndX)
+      const y = isClick ? drag.canvasStartY : Math.min(drag.canvasStartY, drag.canvasEndY)
+      const width = isClick ? null : dragW
+
+      captureHistoryEntry()
+      loadFont(fontFamily)
+      const newId = createTextLayer({ x, y, width, color, fontFamily, fontSize })
+      setHeldLayers([newId])
+      setEditingTextLayerId(newId)
+      setActiveTool('select')
+      return
+    }
+
     // ── Animate mode: end image layer drag ──
     if (animateDragRef.current.active) {
       const activeLayerIds = Object.keys(livePositionsRef.current)
@@ -626,7 +770,7 @@ export function DrawingLayer() {
     setLivePoints([])
     targetLayerIdRef.current = null
     useAnimationStore.temporal.getState().resume()
-  }, [livePoints, addStroke, writeFrameValues, clearLiveLayerProps, setCanvasDragActive])
+  }, [livePoints, addStroke, writeFrameValues, clearLiveLayerProps, setCanvasDragActive, createTextLayer, setActiveTool, setEditingTextLayerId, setHeldLayers])
 
   const handlePointerLeave = useCallback(() => {
     if (drawTool === 'eraser') setEraserPos(null)
@@ -689,6 +833,42 @@ export function DrawingLayer() {
               transform={layerTransform(layerId)}
               opacity={Math.max(0, Math.min(1, p.transparency))}
             />
+          )
+        }
+
+        // ── Text layer ──
+        if (layer.layerType === 'text') {
+          if (!layer.text) return null
+          const isEditing = editingTextLayerId === layerId
+          if (isEditing) return null // editing overlay renders on top
+          const effectiveProps = getEffectiveProps(layerId)
+          const progress = effectiveProps.progress ?? 1
+          const displayed = visibleText(layer.text.content, progress)
+          loadEmojiIfNeeded(displayed)
+          const fo_w = layer.text.width ?? 2000
+          return (
+            <g key={layerId} transform={layerTransform(layerId)} opacity={Math.max(0, Math.min(1, effectiveProps.transparency))}>
+              <foreignObject x={0} y={0} width={fo_w} height={2000} style={{ overflow: 'visible', pointerEvents: 'none' }}>
+                <div
+                  // @ts-expect-error — xmlns is required for SVG foreignObject HTML content
+                  xmlns="http://www.w3.org/1999/xhtml"
+                  style={{
+                    fontFamily: `"${layer.text.fontFamily}", "Noto Color Emoji", sans-serif`,
+                    fontSize: layer.text.fontSize,
+                    color: layer.text.color,
+                    width: layer.text.width != null ? `${layer.text.width}px` : 'max-content',
+                    whiteSpace: layer.text.width != null ? 'pre-wrap' : 'pre',
+                    lineHeight: 1.2,
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    WebkitTouchCallout: 'none',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {displayed || '​'}
+                </div>
+              </foreignObject>
+            </g>
           )
         }
 
@@ -789,6 +969,21 @@ export function DrawingLayer() {
           </g>
         )
       })()}
+
+      {/* Text tool drag-to-create preview rectangle */}
+      {textDragRect && textDragRect.w > 2 && textDragRect.h > 2 && (
+        <rect
+          x={textDragRect.x}
+          y={textDragRect.y}
+          width={textDragRect.w}
+          height={textDragRect.h}
+          fill="none"
+          stroke="#3b82f6"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
     </svg>
   )
 }

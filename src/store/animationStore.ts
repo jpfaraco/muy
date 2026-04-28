@@ -1,7 +1,7 @@
 import { create, useStore } from 'zustand'
 import { temporal } from 'zundo'
 import type { TemporalState } from 'zundo'
-import type { AnimationDoc, Layer, LayerProps, PropertyKey, Stroke } from '../types/animation'
+import type { AnimationDoc, Layer, LayerProps, PropertyKey, Stroke, TextStyle } from '../types/animation'
 import { DEFAULT_LAYER_PROPS } from '../types/animation'
 import { computeStrokeBounds } from '../utils/strokeBounds'
 
@@ -68,6 +68,14 @@ interface AnimationActions {
   setLayerHidden: (layerId: string, hidden: boolean) => void
   /** Batch-set hidden on multiple leaf layers in a single update */
   setLayersHidden: (leafIds: string[], hidden: boolean) => void
+  /** Create a new text layer at (x, y) with optional fixed width and style defaults; returns the new layer ID */
+  createTextLayer: (opts: { x: number; y: number; width: number | null; color: string; fontFamily: string; fontSize: number }) => string
+  /** Replace the text content for a text layer */
+  updateTextContent: (layerId: string, content: string) => void
+  /** Merge partial style fields into a text layer's text payload */
+  updateTextStyle: (layerId: string, partial: Partial<Pick<TextStyle, 'fontFamily' | 'fontSize' | 'color' | 'width'>>) => void
+  /** Center the pivot on the text bounding box if not user-owned */
+  centerTextPivot: (layerId: string, width: number, height: number) => void
 }
 
 type AnimationStore = AnimationState & AnimationActions
@@ -468,6 +476,82 @@ export const useAnimationStore = create<AnimationStore>()(
         state.doc.layers,
       )
       return { doc: { ...state.doc, layers: updatedLayers } }
+    }),
+
+  createTextLayer: ({ x, y, width, color, fontFamily, fontSize }) => {
+    const id = `txt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const count = Object.keys(get().doc.layers).filter(
+      (k) => get().doc.layers[k].layerType === 'text'
+    ).length
+    const newLayer: Layer = {
+      id,
+      name: `Text ${count + 1}`,
+      type: 'layer',
+      layerType: 'text',
+      parentId: null,
+      text: { content: '', fontFamily, fontSize, color, width },
+    }
+    set((state) => {
+      const frames = state.doc.frames.map((fd, i) => {
+        if (i !== 0) return fd
+        const existing = fd[id] ?? {}
+        return { ...fd, [id]: { ...existing, x, y } }
+      })
+      return {
+        doc: {
+          ...state.doc,
+          layers: { ...state.doc.layers, [id]: newLayer },
+          layerIds: [...state.doc.layerIds, id],
+          frames,
+        },
+      }
+    })
+    return id
+  },
+
+  updateTextContent: (layerId, content) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer?.text) return state
+      return {
+        doc: {
+          ...state.doc,
+          layers: {
+            ...state.doc.layers,
+            [layerId]: { ...layer, text: { ...layer.text, content } },
+          },
+        },
+      }
+    }),
+
+  updateTextStyle: (layerId, partial) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer?.text) return state
+      return {
+        doc: {
+          ...state.doc,
+          layers: {
+            ...state.doc.layers,
+            [layerId]: { ...layer, text: { ...layer.text, ...partial } },
+          },
+        },
+      }
+    }),
+
+  centerTextPivot: (layerId, width, height) =>
+    set((state) => {
+      const layer = state.doc.layers[layerId]
+      if (!layer || layer.pivotUserOwned) return state
+      return {
+        doc: {
+          ...state.doc,
+          layers: {
+            ...state.doc.layers,
+            [layerId]: { ...layer, pivotX: width / 2, pivotY: height / 2 },
+          },
+        },
+      }
     }),
 
     }),

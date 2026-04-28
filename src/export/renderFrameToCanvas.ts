@@ -3,6 +3,7 @@ import { DEFAULT_LAYER_PROPS } from '../types/animation'
 import { getFlatRenderIds } from '../store/animationStore'
 import { loadImage } from '../utils/imageLoader'
 import { trimStrokes } from '../utils/strokeTrim'
+import { visibleText } from '../utils/textReveal'
 
 /**
  * Composites one animation frame onto a Canvas2D context.
@@ -57,10 +58,61 @@ export async function renderFrameToCanvas(
       for (const stroke of visible) {
         drawStroke(ctx, stroke)
       }
+    } else if (layer.layerType === 'text' && layer.text) {
+      drawText(ctx, layer.text, props.progress)
     }
 
     ctx.restore()
   }
+}
+
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: { content: string; fontFamily: string; fontSize: number; color: string; width: number | null },
+  progress: number,
+): void {
+  const displayed = visibleText(text.content, progress)
+  if (displayed.length === 0) return
+  ctx.font = `${text.fontSize}px "${text.fontFamily}", "Noto Color Emoji", sans-serif`
+  ctx.fillStyle = text.color
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+  const lineHeight = text.fontSize * 1.2
+  const lines = wrapText(ctx, displayed, text.width)
+  let yOffset = 0
+  for (const line of lines) {
+    ctx.fillText(line, 0, yOffset)
+    yOffset += lineHeight
+  }
+}
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number | null,
+): string[] {
+  const paragraphs = text.split('\n')
+  if (maxWidth == null) return paragraphs
+  const result: string[] = []
+  for (const paragraph of paragraphs) {
+    if (paragraph === '') {
+      result.push('')
+      continue
+    }
+    const words = paragraph.split(' ')
+    let currentLine = ''
+    for (const word of words) {
+      const testLine = currentLine ? currentLine + ' ' + word : word
+      if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+        result.push(currentLine)
+        currentLine = word
+      } else {
+        currentLine = testLine
+      }
+    }
+    if (currentLine) result.push(currentLine)
+  }
+  return result
 }
 
 function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke): void {

@@ -33,6 +33,20 @@ export interface ImageAsset {
 
 export const DEFAULT_LAYER_SENSITIVITY = 1
 
+/** Style and content payload for text layers. */
+export interface TextStyle {
+  /** Raw string content, may contain '\n' */
+  content: string
+  /** CSS font-family name from CURATED_FONTS */
+  fontFamily: string
+  /** Font size in canvas/world-space pixels */
+  fontSize: number
+  /** CSS hex color string */
+  color: string
+  /** null = auto-width (no wrap); number = fixed pixel width with wrapping */
+  width: number | null
+}
+
 export interface Layer {
   id: string
   name: string
@@ -56,6 +70,8 @@ export interface Layer {
   sensitivity?: number
   /** Whether this layer (or all descendants for groups) is hidden from the canvas. */
   hidden?: boolean
+  /** Text content and style — only for layerType === 'text' */
+  text?: TextStyle
 }
 
 /**

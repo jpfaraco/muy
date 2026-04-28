@@ -1,6 +1,8 @@
 import { Output, Mp4OutputFormat, WebMOutputFormat, BufferTarget, CanvasSource } from 'mediabunny'
 import type { AnimationDoc, LayerProps, Stroke } from '../types/animation'
 import { renderFrameToCanvas } from './renderFrameToCanvas'
+import { loadFont } from '../utils/loadFonts'
+import { EMOJI_FONT, EMOJI_RE } from '../constants/fonts'
 
 export type VideoFormat = 'mp4' | 'webm'
 

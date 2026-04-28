@@ -12,7 +12,7 @@ export function LayersPanel() {
   const { reorderLayers, setDoc } = useAnimationStore()
   const reorderDrag = useInteractionStore((s) => s.reorderDrag)
   const showLayerSensitivity = useInteractionStore((s) => s.showLayerSensitivity)
-  const { updateReorderInsert, endReorder, setShowLayerSensitivity } = useInteractionStore()
+  const { updateReorderInsert, endReorder, setShowLayerSensitivity, releaseAllLayers } = useInteractionStore()
   const [insertionLineY, setInsertionLineY] = useState<number | null>(null)
   const [insertionLineLeft, setInsertionLineLeft] = useState(12)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -180,7 +180,7 @@ export function LayersPanel() {
   }, [isReordering])
 
   return (
-    <div className="flex h-full flex-col" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="flex h-full flex-col">
       {/* Panel header */}
       <div className="flex h-10 items-center gap-2 pl-3 pr-2">
         <span className="flex-1 truncate text-sm font-semibold text-foreground">Layers</span>
@@ -220,6 +220,7 @@ export function LayersPanel() {
         ref={scrollContainerRef}
         className="relative flex-1 overflow-y-auto"
         onPointerMove={handlePointerMove}
+        onPointerDown={releaseAllLayers}
       >
         {[...topLevelIds].reverse().map((id) => (
           <LayerTreeItem key={id} layerId={id} depth={0} />

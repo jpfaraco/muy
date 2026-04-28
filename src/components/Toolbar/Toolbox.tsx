@@ -1,4 +1,4 @@
-import { MousePointer2, Hand, Pencil, Eraser, Crosshair, Film, Undo2, Redo2, ChevronsUpDown } from 'lucide-react'
+import { MousePointer2, Hand, Pencil, Eraser, Type, Crosshair, Film, Undo2, Redo2, ChevronsUpDown } from 'lucide-react'
 import { useInteractionStore } from '../../store/interactionStore'
 import { useAnimationHistory, useAnimationStore } from '../../store/animationStore'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../../store/canvasViewStore'
@@ -58,6 +58,7 @@ export function Toolbox() {
       <div className="h-6 w-px shrink-0 bg-border" />
       {btn('pencil',  Pencil,        'Pencil')}
       {btn('eraser',  Eraser,        'Eraser')}
+      {btn('text',    Type,          'Text')}
       {btn('pivot',   Crosshair,     'Pivot')}
       {btn('animate', Film,          'Animate')}
       <div className="h-6 w-px shrink-0 bg-border" />

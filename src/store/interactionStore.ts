@@ -4,7 +4,7 @@ import type { LayerProps, PropertyKey } from '../types/animation'
 
 export type AppMode = 'animate' | 'draw'
 export type DrawTool = 'pencil' | 'eraser' | 'move' | 'pivot'
-export type ActiveTool = 'select' | 'hand' | 'pencil' | 'eraser' | 'pivot' | 'animate'
+export type ActiveTool = 'select' | 'hand' | 'pencil' | 'eraser' | 'pivot' | 'text' | 'animate'
 
 interface InteractionState {
   /** Unified toolbar tool — drives both mode and drawTool */
@@ -41,6 +41,12 @@ interface InteractionState {
   reorderDrag: { draggingLayerIds: string[]; insertBefore: string | null; insertParent: string | null } | null
   /** Whether the sensitivity scrubbers are visible in the layers panel */
   showLayerSensitivity: boolean
+  /** Text tool defaults — seed new text layers and drive the tool options panel */
+  textColor: string
+  textSize: number
+  textFontFamily: string
+  /** ID of the text layer currently open for inline editing; null when not editing */
+  editingTextLayerId: string | null
 }
 
 interface InteractionActions {
@@ -67,6 +73,10 @@ interface InteractionActions {
   setShowLayerSensitivity: (show: boolean) => void
   setCanvasDragActive: (active: boolean) => void
   setLiveLayerProps: (updates: Array<{ layerId: string; props: Partial<LayerProps> }>) => void
+  setTextColor: (color: string) => void
+  setTextSize: (size: number) => void
+  setTextFontFamily: (fontFamily: string) => void
+  setEditingTextLayerId: (id: string | null) => void
   startReorder: (layerIds: string[]) => void
   updateReorderInsert: (insertBefore: string | null, insertParent: string | null) => void
   endReorder: () => void
@@ -97,6 +107,10 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   liveLayerProps: {},
   reorderDrag: null,
   showLayerSensitivity: false,
+  textColor: '#3b82f6',
+  textSize: 64,
+  textFontFamily: 'Patrick Hand',
+  editingTextLayerId: null,
 
   setActiveTool: (tool) => {
     const modeMap: Record<ActiveTool, AppMode> = {
@@ -105,6 +119,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       pencil: 'draw',
       eraser: 'draw',
       pivot: 'draw',
+      text: 'animate',
       animate: 'animate',
     }
     const drawToolMap: Partial<Record<ActiveTool, DrawTool>> = {
@@ -283,6 +298,11 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
 
       return { liveLayerProps }
     }),
+
+  setTextColor: (textColor) => set({ textColor }),
+  setTextSize: (textSize) => set({ textSize }),
+  setTextFontFamily: (textFontFamily) => set({ textFontFamily }),
+  setEditingTextLayerId: (editingTextLayerId) => set({ editingTextLayerId }),
 
   getEffectiveHeldLayers: () => {
     const { heldLayerIds, layerListEntries } = get()

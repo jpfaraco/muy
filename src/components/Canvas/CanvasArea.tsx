@@ -1,5 +1,6 @@
 import { AnimationCanvas } from "./AnimationCanvas";
 import { DrawingLayer } from "./DrawingLayer";
+import { TextEditOverlay } from "./TextEditOverlay";
 import { WidgetLayer } from "./WidgetLayer";
 import { Toolbox } from "../Toolbar/Toolbox";
 import { ToolOptions } from "../Toolbar/ToolOptions";
@@ -40,6 +41,7 @@ export function CanvasArea() {
       >
         <AnimationCanvas />
         <DrawingLayer />
+        <TextEditOverlay />
       </div>
 
       {/* Canvas bounds outline — sibling after canvas so it renders above all layer content */}
