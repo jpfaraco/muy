@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Select } from "@base-ui-components/react/select";
-import { Input } from "@/components/ui/input";
+import { ColorInput } from "@/components/ColorInput";
 import { Scrubber } from "@/components/ui/Scrubber";
 import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Eye, ChevronsUpDown, Check } from "lucide-react";
 import { useAnimationStore } from "../../store/animationStore";
@@ -95,8 +95,7 @@ function PencilOptions() {
     <div className="flex items-center gap-4">
       {/* Color picker */}
       <div className="flex items-center gap-2">
-        <Input type="color" value={drawColor} onChange={(e) => setDrawColor(e.target.value)} className="h-6 w-10 shrink-0 cursor-pointer px-1 py-[3px]" />
-        <Input value={drawColor} onChange={(e) => setDrawColor(e.target.value)} className="h-6 w-[88px] py-[3px] font-mono" maxLength={7} placeholder="#000000" />
+        <ColorInput value={drawColor} onChange={setDrawColor} ariaLabel="Draw color" />
       </div>
 
       <div className="h-6 w-px shrink-0 bg-border" />
@@ -208,11 +207,7 @@ function TextOptions() {
     <div className="flex items-center gap-4">
       {/* Color */}
       <div className="flex items-center gap-2">
-        <div className="relative h-6 w-6 shrink-0 rounded-[4px] border border-border bg-background p-0.5">
-          <div className="h-full w-full rounded-[2px]" style={{ background: displayColor }} />
-          <input type="color" value={displayColor} onChange={(e) => handleColorChange(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="Text color" />
-        </div>
-        <Input value={displayColor} onChange={(e) => handleColorChange(e.target.value)} className="h-6 w-[80px] py-[3px] font-mono text-xs" maxLength={7} placeholder="#000000" />
+        <ColorInput value={displayColor} onChange={handleColorChange} ariaLabel="Text color" />
       </div>
 
       <div className="h-6 w-px shrink-0 bg-border" />

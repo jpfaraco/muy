@@ -13,6 +13,7 @@ function makeMinimalDoc(): AnimationDoc {
     canvasWidth: 1920,
     canvasHeight: 1080,
     backgroundColor: '#ffffff',
+    paletteId: 1,
   }
 }
 

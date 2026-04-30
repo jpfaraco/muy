@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ColorInput } from "@/components/ColorInput";
 import { useAnimationStore } from "../store/animationStore";
 import { cn } from "@/lib/utils";
 import { framesToTimecode, timecodeToFrames, formatTimecodeInput } from "@/lib/timecode";
@@ -184,24 +185,8 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
           </Field>
 
           <Field>
-            <Label htmlFor="canvas-bg-text">Background color</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="canvas-bg-color"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-10 shrink-0 cursor-pointer px-1 py-0.5"
-              />
-              <Input
-                id="canvas-bg-text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="font-mono"
-                maxLength={7}
-                placeholder="#000000"
-              />
-            </div>
+            <Label>Background color</Label>
+            <ColorInput value={color} onChange={setColor} ariaLabel="Background color" className="w-full" />
           </Field>
         </FieldGroup>
 

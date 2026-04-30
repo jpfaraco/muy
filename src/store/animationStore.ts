@@ -56,6 +56,8 @@ interface AnimationActions {
   setLayerSensitivity: (layerId: string, sensitivity: number) => void
   /** Update canvas dimensions and background color */
   setCanvasSettings: (canvasWidth: number, canvasHeight: number, backgroundColor: string) => void
+  /** Set the active document palette used by color inputs */
+  setPaletteId: (paletteId: number) => void
   /** Resize the timeline; truncates or extends frames immutably and clamps currentFrame */
   setTimelineLength: (frameCount: number) => void
   /** Wrap an ungrouped layer in a new group at the same position */
@@ -95,6 +97,7 @@ export const useAnimationStore = create<AnimationStore>()(
     canvasWidth: 1920,
     canvasHeight: 1080,
     backgroundColor: '#ffffff',
+    paletteId: 1,
     layerIds: [],
     layers: {},
     imageAssets: {},
@@ -376,6 +379,11 @@ export const useAnimationStore = create<AnimationStore>()(
   setCanvasSettings: (canvasWidth, canvasHeight, backgroundColor) =>
     set((state) => ({
       doc: { ...state.doc, canvasWidth, canvasHeight, backgroundColor },
+    })),
+
+  setPaletteId: (paletteId) =>
+    set((state) => ({
+      doc: { ...state.doc, paletteId },
     })),
 
   setTimelineLength: (frameCount) =>

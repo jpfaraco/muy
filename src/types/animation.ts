@@ -97,6 +97,7 @@ export interface AnimationDoc {
   canvasWidth: number
   canvasHeight: number
   backgroundColor: string
+  paletteId: number
   /** Top-level layer IDs in render order (bottom → top). Groups are entries here; their children live in childIds. */
   layerIds: string[]
   layers: Record<string, Layer>

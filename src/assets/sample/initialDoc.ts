@@ -13,6 +13,7 @@ export const initialDoc: AnimationDoc = {
   canvasWidth: CANVAS_WIDTH,
   canvasHeight: CANVAS_HEIGHT,
   backgroundColor: '#ffffff',
+  paletteId: 1,
   layerIds: [],
   layers: {},
   imageAssets: {},

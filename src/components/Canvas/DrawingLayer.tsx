@@ -7,6 +7,15 @@ import { fitStroke } from '../../utils/strokeFitting'
 import { trimStrokes } from '../../utils/strokeTrim'
 import { visibleText } from '../../utils/textReveal'
 import { loadFont, loadEmojiIfNeeded } from '../../utils/loadFonts'
+import { renderFrameToCanvas } from '../../export/renderFrameToCanvas'
+import {
+  rgbaToHex,
+  subscribeToCanvasColorSampleCancel,
+  subscribeToCanvasColorSampleFinish,
+  subscribeToCanvasColorSampleMove,
+  subscribeToCanvasColorSampleStart,
+  type ColorSampleHandler,
+} from '../../lib/colorSampler'
 
 // ---------------------------------------------------------------------------
 // Image cache (shared module — also used by the video exporter)
@@ -232,6 +241,17 @@ export function DrawingLayer() {
   const getLayerPropsAtFrame = useAnimationStore((s) => s.getLayerPropsAtFrame)
 
   const svgRef = useRef<SVGSVGElement>(null)
+  const colorSampleHandlerRef = useRef<ColorSampleHandler | null>(null)
+  const colorSampleCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const colorSampleRenderRef = useRef<Promise<HTMLCanvasElement | null> | null>(null)
+  const [isSamplingColor, setIsSamplingColor] = useState(false)
+  const [samplePreview, setSamplePreview] = useState<{
+    x: number
+    y: number
+    radius: number
+    hex: string
+    imageHref: string
+  } | null>(null)
   // Raw points collected during drag — fitted to bezier on pointer up
   const [livePoints, setLivePoints] = useState<Point[]>([])
   const liveColorRef = useRef(drawColor)
@@ -328,6 +348,147 @@ export function DrawingLayer() {
     }
   }, [canvasWidth, canvasHeight])
 
+  const getCanvasPointFromClient = useCallback(
+    (clientX: number, clientY: number): { point: Point; inBounds: boolean; radius: number } => {
+      const svg = svgRef.current
+      const point = toCanvasCoords(clientX, clientY)
+      if (!svg) return { point, inBounds: false, radius: 48 }
+      const rect = svg.getBoundingClientRect()
+      const radius = 52 * (canvasWidth / Math.max(1, rect.width))
+      return {
+        point,
+        inBounds: point.x >= 0 && point.x < canvasWidth && point.y >= 0 && point.y < canvasHeight,
+        radius,
+      }
+    },
+    [canvasHeight, canvasWidth, toCanvasCoords],
+  )
+
+  const renderColorSampleCanvas = useCallback(() => {
+    if (colorSampleCanvasRef.current) return Promise.resolve(colorSampleCanvasRef.current)
+    if (colorSampleRenderRef.current) return colorSampleRenderRef.current
+
+    const canvas = document.createElement('canvas')
+    canvas.width = canvasWidth
+    canvas.height = canvasHeight
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return Promise.resolve(null)
+
+    colorSampleRenderRef.current = renderFrameToCanvas(
+      ctx,
+      useAnimationStore.getState().doc,
+      useAnimationStore.getState().drawStrokes,
+      useAnimationStore.getState().currentFrame,
+      (layerId, frame) => ({
+        ...useAnimationStore.getState().getLayerPropsAtFrame(layerId, frame),
+        ...(useInteractionStore.getState().liveLayerProps[layerId] ?? {}),
+      }),
+    ).then(() => {
+      colorSampleCanvasRef.current = canvas
+      return canvas
+    })
+
+    return colorSampleRenderRef.current
+  }, [canvasHeight, canvasWidth])
+
+  const makeSamplePreviewImage = useCallback((canvas: HTMLCanvasElement, x: number, y: number) => {
+    const sourceSize = 28
+    const half = Math.floor(sourceSize / 2)
+    const patch = document.createElement('canvas')
+    patch.width = sourceSize
+    patch.height = sourceSize
+    const ctx = patch.getContext('2d')
+    if (!ctx) return ''
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(
+      canvas,
+      Math.max(0, Math.min(canvas.width - sourceSize, x - half)),
+      Math.max(0, Math.min(canvas.height - sourceSize, y - half)),
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      sourceSize,
+      sourceSize,
+    )
+    return patch.toDataURL()
+  }, [])
+
+  const updateSamplePreview = useCallback(
+    async (clientX: number, clientY: number) => {
+      const { point, inBounds, radius } = getCanvasPointFromClient(clientX, clientY)
+      if (!inBounds) {
+        setSamplePreview(null)
+        return
+      }
+      const canvas = await renderColorSampleCanvas()
+      if (!canvas || !colorSampleHandlerRef.current) return
+      const x = Math.max(0, Math.min(canvasWidth - 1, Math.floor(point.x)))
+      const y = Math.max(0, Math.min(canvasHeight - 1, Math.floor(point.y)))
+      const [r, g, b] = canvas.getContext('2d', { willReadFrequently: true })!.getImageData(x, y, 1, 1).data
+      setSamplePreview({
+        x: point.x,
+        y: point.y,
+        radius,
+        hex: rgbaToHex(r, g, b),
+        imageHref: makeSamplePreviewImage(canvas, x, y),
+      })
+    },
+    [canvasHeight, canvasWidth, getCanvasPointFromClient, makeSamplePreviewImage, renderColorSampleCanvas],
+  )
+
+  const finishCanvasColorSample = useCallback(
+    async (clientX: number, clientY: number) => {
+      const onSample = colorSampleHandlerRef.current
+      if (!onSample) return
+      const { point, inBounds } = getCanvasPointFromClient(clientX, clientY)
+      const canvas = await renderColorSampleCanvas()
+      colorSampleHandlerRef.current = null
+      colorSampleCanvasRef.current = null
+      colorSampleRenderRef.current = null
+      setIsSamplingColor(false)
+      setSamplePreview(null)
+      if (!canvas || !inBounds) return
+      const x = Math.max(0, Math.min(canvasWidth - 1, Math.floor(point.x)))
+      const y = Math.max(0, Math.min(canvasHeight - 1, Math.floor(point.y)))
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return
+      const [r, g, b] = ctx.getImageData(x, y, 1, 1).data
+      onSample(rgbaToHex(r, g, b))
+    },
+    [canvasHeight, canvasWidth, getCanvasPointFromClient, renderColorSampleCanvas],
+  )
+
+  useEffect(() => {
+    const cleanupSampling = () => {
+      colorSampleHandlerRef.current = null
+      colorSampleCanvasRef.current = null
+      colorSampleRenderRef.current = null
+      setIsSamplingColor(false)
+      setSamplePreview(null)
+    }
+    const unsubscribeStart = subscribeToCanvasColorSampleStart((onSample) => {
+      colorSampleHandlerRef.current = onSample
+      colorSampleCanvasRef.current = null
+      colorSampleRenderRef.current = null
+      setIsSamplingColor(true)
+      void renderColorSampleCanvas()
+    })
+    const unsubscribeMove = subscribeToCanvasColorSampleMove((clientX, clientY) => {
+      void updateSamplePreview(clientX, clientY)
+    })
+    const unsubscribeFinish = subscribeToCanvasColorSampleFinish((clientX, clientY) => {
+      void finishCanvasColorSample(clientX, clientY)
+    })
+    const unsubscribeCancel = subscribeToCanvasColorSampleCancel(cleanupSampling)
+    return () => {
+      unsubscribeStart()
+      unsubscribeMove()
+      unsubscribeFinish()
+      unsubscribeCancel()
+    }
+  }, [finishCanvasColorSample, renderColorSampleCanvas, updateSamplePreview])
+
   function getEffectiveProps(layerId: string) {
     const frameProps = getLayerPropsAtFrame(layerId, currentFrame)
     const live = liveLayerProps[layerId] ?? {}
@@ -418,6 +579,13 @@ export function DrawingLayer() {
       }
 
       const currentActiveTool = useInteractionStore.getState().activeTool
+
+      if (colorSampleHandlerRef.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        void finishCanvasColorSample(e.clientX, e.clientY)
+        return
+      }
 
       // ── Text tool ──
       if (currentActiveTool === 'text') {
@@ -578,7 +746,7 @@ export function DrawingLayer() {
       setLivePoints([localPt])
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isActive, heldVectorLayerId, createVectorLayer, holdLayer, toCanvasCoords, drawTool, drawColor, drawWidth, pencilSmoothing, setLayerPivot, getEffectiveHeldLayers, getLayerPropsAtFrame, setLiveLayerProps, setCanvasDragActive],
+    [isActive, heldVectorLayerId, createVectorLayer, holdLayer, toCanvasCoords, drawTool, drawColor, drawWidth, pencilSmoothing, setLayerPivot, getEffectiveHeldLayers, getLayerPropsAtFrame, setLiveLayerProps, setCanvasDragActive, finishCanvasColorSample],
   )
 
   const handlePointerMove = useCallback(
@@ -778,8 +946,10 @@ export function DrawingLayer() {
 
   // ── render ────────────────────────────────────────────────────────────────
 
-  const cursor = !isActive
-    ? 'default'
+  const cursor = isSamplingColor
+    ? 'copy'
+    : !isActive
+      ? 'default'
     : drawTool === 'move'
       ? 'grab'
       : drawTool === 'eraser'
@@ -892,6 +1062,61 @@ export function DrawingLayer() {
         )
       })}
       </g>
+
+      {samplePreview && (
+        <g style={{ pointerEvents: 'none' }}>
+          <defs>
+            <clipPath id="muy-color-sample-preview-clip">
+              <circle cx={samplePreview.x} cy={samplePreview.y} r={samplePreview.radius} />
+            </clipPath>
+          </defs>
+          <circle
+            cx={samplePreview.x}
+            cy={samplePreview.y}
+            r={samplePreview.radius}
+            fill={samplePreview.hex}
+            stroke="rgba(0,0,0,0.35)"
+            strokeWidth={1}
+          />
+          {samplePreview.imageHref ? (
+            <image
+              href={samplePreview.imageHref}
+              x={samplePreview.x - samplePreview.radius}
+              y={samplePreview.y - samplePreview.radius}
+              width={samplePreview.radius * 2}
+              height={samplePreview.radius * 2}
+              preserveAspectRatio="none"
+              clipPath="url(#muy-color-sample-preview-clip)"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          ) : null}
+          <circle
+            cx={samplePreview.x}
+            cy={samplePreview.y}
+            r={samplePreview.radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.9)"
+            strokeWidth={1.5}
+          />
+          <circle
+            cx={samplePreview.x}
+            cy={samplePreview.y}
+            r={samplePreview.radius}
+            fill="none"
+            stroke="rgba(0,0,0,0.2)"
+            strokeWidth={0.5}
+          />
+          <rect
+            x={samplePreview.x - 2}
+            y={samplePreview.y - 2}
+            width={4}
+            height={4}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={1}
+          />
+        </g>
+      )}
 
       {/* Eraser cursor ring */}
       {drawTool === 'eraser' && eraserPos && (

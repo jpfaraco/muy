@@ -19,6 +19,7 @@ function makeMinimalDoc(frameCount = 5): AnimationDoc {
     canvasWidth: 1920,
     canvasHeight: 1080,
     backgroundColor: '#ffffff',
+    paletteId: 1,
   }
 }
 
@@ -128,6 +129,15 @@ describe('animationStore', () => {
     const newDoc = makeMinimalDoc(10)
     useAnimationStore.getState().setDoc(newDoc)
     expect(useAnimationStore.getState().doc.frameCount).toBe(10)
+  })
+
+  it('setPaletteId updates the document palette immutably', () => {
+    const docBefore = useAnimationStore.getState().doc
+    useAnimationStore.getState().setPaletteId(3)
+
+    const docAfter = useAnimationStore.getState().doc
+    expect(docAfter.paletteId).toBe(3)
+    expect(docAfter).not.toBe(docBefore)
   })
 
   describe('setLayerSensitivity', () => {
