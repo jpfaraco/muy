@@ -63,20 +63,15 @@ export function Toolbox() {
       {btn('animate', Film,          'Animate')}
       <div className="h-6 w-px shrink-0 bg-border" />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            aria-label="Zoom"
-            className="flex h-10 w-[78px] items-center justify-between gap-1.5 rounded-md bg-transparent px-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50"
-          >
-            <span>{Math.round(zoom * 100)}%</span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
-          </button>
+        <DropdownMenuTrigger render={<button aria-label="Zoom" className="flex h-10 w-[78px] items-center justify-between gap-1.5 rounded-md bg-transparent px-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50" />}>
+          <span>{Math.round(zoom * 100)}%</span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => zoomByFactor(CANVAS_ZOOM_STEP)}>Zoom in</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => zoomByFactor(1 / CANVAS_ZOOM_STEP)}>Zoom out</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setZoomPreset(1)}>Zoom to 100%</DropdownMenuItem>
-          <DropdownMenuItem onSelect={fit}>Zoom to fit</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => zoomByFactor(CANVAS_ZOOM_STEP)}>Zoom in</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => zoomByFactor(1 / CANVAS_ZOOM_STEP)}>Zoom out</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setZoomPreset(1)}>Zoom to 100%</DropdownMenuItem>
+          <DropdownMenuItem onClick={fit}>Zoom to fit</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

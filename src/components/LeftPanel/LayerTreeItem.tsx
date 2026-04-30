@@ -235,12 +235,10 @@ export function LayerTreeItem({ layerId, depth }: Props) {
 
         {/* Kebab menu */}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-xs" className={cn("text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100", menuOpen && "opacity-100")} onPointerDown={(e) => e.stopPropagation()} aria-label="Layer options">
-              <MoreVertical className="h-3.5 w-3.5" />
-            </Button>
+          <PopoverTrigger render={<Button variant="ghost" size="icon-xs" className={cn("text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100", menuOpen && "opacity-100")} onPointerDown={(e) => e.stopPropagation()} aria-label="Layer options" />}>
+            <MoreVertical className="h-3.5 w-3.5" />
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-44 p-1" sideOffset={2} onPointerDown={(e) => e.stopPropagation()}>
+          <PopoverContent align="end" className="w-44 gap-0 p-1" sideOffset={2} onPointerDown={(e) => e.stopPropagation()}>
             {layer.type === 'layer' && layer.parentId === null && (
               <>
                 <button

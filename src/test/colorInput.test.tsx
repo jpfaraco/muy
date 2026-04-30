@@ -24,22 +24,31 @@ describe('ColorInput', () => {
     })
   })
 
-  it('opens the popover and changes color from RGB input', () => {
+  it('opens the popover and changes color from HSV input', () => {
     const onChange = vi.fn()
-    render(<ColorInput value="#3B82F6" onChange={onChange} ariaLabel="Draw color" />)
+    render(<ColorInput value="#FF0000" onChange={onChange} ariaLabel="Draw color" />)
 
     fireEvent.click(screen.getByLabelText('Draw color'))
-    fireEvent.change(screen.getByLabelText('Red'), { target: { value: '255' } })
+    // Default format is HSV — change Value from 100 to 50 → #800000
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: '50' } })
 
-    expect(onChange).toHaveBeenCalledWith('#FF82F6')
+    expect(onChange).toHaveBeenCalledWith('#800000')
   })
 
-  it('switches to hex input and normalizes typed values', () => {
+  it('switches to hex format via select and normalizes typed values', () => {
     const onChange = vi.fn()
     render(<ColorInput value="#000000" onChange={onChange} />)
 
     fireEvent.click(screen.getByLabelText('Color'))
-    fireEvent.click(screen.getByRole('button', { name: 'HEX' }))
+    // First combobox in DOM is the format Select; click to open it.
+    // Base UI Select.Item only commits selection when the pointer type is 'touch'
+    // or the item is highlighted — simulate touch to guarantee commit in jsdom.
+    const [formatSelect] = screen.getAllByRole('combobox')
+    fireEvent.click(formatSelect)
+    const hexOption = screen.getByRole('option', { name: 'HEX' })
+    fireEvent.pointerDown(hexOption, { pointerType: 'touch' })
+    fireEvent.pointerUp(hexOption, { pointerType: 'touch' })
+    fireEvent.click(hexOption)
     fireEvent.change(screen.getByLabelText('Hex color'), { target: { value: '#abc' } })
 
     expect(onChange).toHaveBeenCalledWith('#AABBCC')
@@ -49,7 +58,9 @@ describe('ColorInput', () => {
     render(<ColorInput value="#000000" onChange={vi.fn()} />)
 
     fireEvent.click(screen.getByLabelText('Color'))
-    fireEvent.click(screen.getByRole('combobox'))
+    // Scope to the palette section to avoid the format Select combobox
+    const paletteSection = screen.getByText('Palette').closest('div')!
+    fireEvent.click(within(paletteSection).getByRole('combobox'))
     fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Cheerful Rainbow' } })
 
     expect(screen.getByText('Cheerful Rainbow Delight')).toBeInTheDocument()

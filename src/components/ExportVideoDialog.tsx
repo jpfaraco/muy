@@ -131,7 +131,7 @@ export function ExportVideoDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-sm">
 
         {phase === 'settings' && (
           <>

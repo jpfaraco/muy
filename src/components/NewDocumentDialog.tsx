@@ -40,9 +40,7 @@ export function NewDocumentDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button variant="destructive" onClick={handleConfirm}>
             Discard and start new
           </Button>

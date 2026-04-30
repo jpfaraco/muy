@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { ChevronDown, CircleHelp } from 'lucide-react'
+import { CircleHelp } from 'lucide-react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarTrigger,
+} from '@/components/ui/menubar'
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { ExportVideoDialog } from './ExportVideoDialog'
 import { HelpDialog } from './HelpDialog'
@@ -17,45 +17,11 @@ import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
 import { getFlatRenderIds, useAnimationHistory, useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
 
-type MenuItem = { label: string; onClick?: () => void; disabled?: boolean; soon?: boolean } | { separator: true }
-
-interface MenuDef {
-  label: string
-  items: MenuItem[]
-}
-
-function MenuButton({ label, items }: MenuDef) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 px-3 text-foreground data-[state=open]:bg-accent"
-        >
-          {label}
-          <ChevronDown className="h-3 w-3 opacity-60" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {items.map((item, i) =>
-          'separator' in item ? (
-            <DropdownMenuSeparator key={i} />
-          ) : (
-            <DropdownMenuItem key={item.label} onSelect={item.onClick} disabled={item.disabled}>
-              <span className="flex-1">{item.label}</span>
-              {item.soon && (
-                <span className="ml-3 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-                  Soon
-                </span>
-              )}
-            </DropdownMenuItem>
-          ),
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
+const SoonBadge = () => (
+  <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+    Soon
+  </span>
+)
 
 export function Header() {
   const [newDocOpen, setNewDocOpen] = useState(false)
@@ -72,59 +38,6 @@ export function Header() {
 
   const canUndo = useAnimationHistory((s) => s.pastStates.length > 0)
   const canRedo = useAnimationHistory((s) => s.futureStates.length > 0)
-
-  const menus: MenuDef[] = [
-    {
-      label: 'File',
-      items: [
-        { label: 'New', onClick: () => setNewDocOpen(true) },
-        { label: 'Open…', disabled: true, soon: true },
-        { label: 'Save…', disabled: true, soon: true },
-        { label: 'Canvas settings…', onClick: () => setCanvasSettingsOpen(true) },
-        { label: 'Export video…', onClick: () => setExportVideoOpen(true) },
-      ],
-    },
-    {
-      label: 'Edit',
-      items: [
-        {
-          label: 'Undo',
-          disabled: !canUndo,
-          onClick: () => useAnimationStore.temporal.getState().undo(),
-        },
-        {
-          label: 'Redo',
-          disabled: !canRedo,
-          onClick: () => useAnimationStore.temporal.getState().redo(),
-        },
-        { separator: true },
-        { label: 'Select all', onClick: () => setHeldLayers(getFlatRenderIds(doc)) },
-        { separator: true },
-        {
-          label: 'Hide selected layers',
-          disabled: heldLayerIds.length === 0,
-          onClick: () => setLayersHidden(heldLayerIds, true),
-        },
-        {
-          label: 'Show all hidden layers',
-          disabled: !Object.values(doc.layers).some((l) => l.type === 'layer' && l.hidden),
-          onClick: () => setLayersHidden(
-            Object.values(doc.layers).filter((l) => l.type === 'layer' && l.hidden).map((l) => l.id),
-            false,
-          ),
-        },
-      ],
-    },
-    {
-      label: 'View',
-      items: [
-        { label: 'Zoom in', onClick: () => zoomByFactor(CANVAS_ZOOM_STEP) },
-        { label: 'Zoom out', onClick: () => zoomByFactor(1 / CANVAS_ZOOM_STEP) },
-        { label: 'Zoom to 100%', onClick: () => setZoomPreset(1) },
-        { label: 'Zoom to fit', onClick: fit },
-      ],
-    },
-  ]
 
   return (
     <>
@@ -148,11 +61,58 @@ export function Header() {
               }}
             />
           </div>
-          <nav className="flex items-center">
-            {menus.map((m) => (
-              <MenuButton key={m.label} {...m} />
-            ))}
-          </nav>
+
+          <Menubar className="h-auto gap-0 border-none bg-transparent p-0">
+            <MenubarMenu>
+              <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">File</MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem onClick={() => setNewDocOpen(true)}>New</MenubarItem>
+                <MenubarItem disabled className="whitespace-nowrap">Open… <SoonBadge /></MenubarItem>
+                <MenubarItem disabled className="whitespace-nowrap">Save… <SoonBadge /></MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem className="whitespace-nowrap" onClick={() => setCanvasSettingsOpen(true)}>Canvas settings…</MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setExportVideoOpen(true)}>Export video…</MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+
+            <MenubarMenu>
+              <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">Edit</MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem disabled={!canUndo} onClick={() => useAnimationStore.temporal.getState().undo()}>Undo</MenubarItem>
+                <MenubarItem disabled={!canRedo} onClick={() => useAnimationStore.temporal.getState().redo()}>Redo</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem className="whitespace-nowrap" onClick={() => setHeldLayers(getFlatRenderIds(doc))}>Select all</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem
+                  className="whitespace-nowrap"
+                  disabled={heldLayerIds.length === 0}
+                  onClick={() => setLayersHidden(heldLayerIds, true)}
+                >
+                  Hide selected layers
+                </MenubarItem>
+                <MenubarItem
+                  className="whitespace-nowrap"
+                  disabled={!Object.values(doc.layers).some((l) => l.type === 'layer' && l.hidden)}
+                  onClick={() => setLayersHidden(
+                    Object.values(doc.layers).filter((l) => l.type === 'layer' && l.hidden).map((l) => l.id),
+                    false,
+                  )}
+                >
+                  Show all hidden layers
+                </MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+
+            <MenubarMenu>
+              <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">View</MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem className="whitespace-nowrap" onClick={() => zoomByFactor(CANVAS_ZOOM_STEP)}>Zoom in</MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => zoomByFactor(1 / CANVAS_ZOOM_STEP)}>Zoom out</MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setZoomPreset(1)}>Zoom to 100%</MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={fit}>Zoom to fit</MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+          </Menubar>
         </div>
 
         {/* Right: help */}

@@ -41,7 +41,7 @@ const tools: { Icon: React.ElementType; desc: string }[] = [
 export function HelpDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>How Muy works</DialogTitle>
           <DialogDescription className="text-xs">You manipulate layers and their properties while the timeline records your performance. Or go old school and animate frame-by-frame.</DialogDescription>

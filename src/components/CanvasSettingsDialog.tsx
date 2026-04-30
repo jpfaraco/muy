@@ -95,7 +95,7 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Canvas settings</DialogTitle>
           <DialogDescription>Set the canvas dimensions and background color.</DialogDescription>
@@ -105,19 +105,11 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
           <Field>
             <Label>Preset</Label>
             <Popover open={presetOpen} onOpenChange={handlePresetOpenChange}>
-              <PopoverTrigger asChild>
-                <Button
-                  ref={triggerRef}
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={presetOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  <span>{activePreset?.label ?? "Custom"}</span>
-                  <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-                </Button>
+              <PopoverTrigger render={<Button ref={triggerRef} variant="outline" role="combobox" aria-expanded={presetOpen} className="w-full justify-between font-normal" />}>
+                <span>{activePreset?.label ?? "Custom"}</span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
               </PopoverTrigger>
-              <PopoverContent className="p-1" style={{ width: triggerWidth }} align="start">
+              <PopoverContent className="gap-0 p-1" style={{ width: triggerWidth }} align="start">
                 {PRESETS.map((preset) => {
                   const isSelected = activePreset?.label === preset.label;
                   return (
@@ -191,9 +183,7 @@ export function CanvasSettingsDialog({ open, onOpenChange }: Props) {
         </FieldGroup>
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button type="submit" onClick={handleApply}>
             Apply
           </Button>

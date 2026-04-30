@@ -1,38 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, Pipette } from "lucide-react";
+import { ChevronDown, Pipette } from "lucide-react";
 import { HsvColorPicker, type HsvColor } from "react-colorful";
 import palettesJson from "@/assets/color-palettes.json";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxTrigger } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAnimationStore } from "@/store/animationStore";
-import {
-  hexToHsl,
-  hexToHsv,
-  hexToRgb,
-  hslToHex,
-  hsvToHex,
-  isPartialHexInput,
-  normalizeHex,
-  parseChannel,
-  rgbToHex,
-} from "@/lib/color";
-import {
-  cancelCanvasColorSample,
-  finishCanvasColorSampleDrag,
-  moveCanvasColorSampleDrag,
-  startCanvasColorSampleDrag,
-} from "@/lib/colorSampler";
+import { hexToHsl, hexToHsv, hexToRgb, hslToHex, hsvToHex, isPartialHexInput, normalizeHex, parseChannel, rgbToHex } from "@/lib/color";
+import { cancelCanvasColorSample, finishCanvasColorSampleDrag, moveCanvasColorSampleDrag, startCanvasColorSampleDrag } from "@/lib/colorSampler";
 import { cn } from "@/lib/utils";
 
 type ColorFormat = "HEX" | "RGB" | "HSL" | "HSV";
@@ -83,19 +62,7 @@ function getEyeDropper(): EyeDropperConstructor | undefined {
   return candidate;
 }
 
-function NumericInput({
-  value,
-  min,
-  max,
-  label,
-  onCommit,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  label: string;
-  onCommit: (value: number) => void;
-}) {
+function NumericInput({ value, min, max, label, onCommit }: { value: number; min: number; max: number; label: string; onCommit: (value: number) => void }) {
   const [draft, setDraft] = useState(String(value));
 
   useEffect(() => {
@@ -114,7 +81,7 @@ function NumericInput({
         if (parsed !== null) onCommit(parsed);
       }}
       onBlur={() => setDraft(String(value))}
-      className="h-7 min-w-0 px-2 py-1 text-center font-mono text-xs"
+      className="min-w-0 text-center"
     />
   );
 }
@@ -129,77 +96,46 @@ function PaletteStrip({ colors, className }: { colors: PaletteColor[]; className
   );
 }
 
-function PaletteCombobox({
-  paletteId,
-  onPaletteChange,
-}: {
-  paletteId: number;
-  onPaletteChange: (paletteId: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
+function PaletteCombobox({ paletteId, onPaletteChange }: { paletteId: number; onPaletteChange: (paletteId: number) => void }) {
   const palette = selectedPalette(paletteId);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="h-8 w-full justify-between px-2.5 font-normal"
-        >
-          <span className="truncate">{palette.name}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-1" align="start" sideOffset={6} onOpenAutoFocus={(e) => e.preventDefault()}>
-        <Command>
-          <CommandInput placeholder="Search" className="h-9" />
-          <CommandList className="max-h-72" onPointerDown={(e) => e.stopPropagation()}>
-            <CommandEmpty>No palettes found.</CommandEmpty>
-            <CommandGroup>
-              {palettes.map((option) => {
-                const isSelected = option.id === palette.id;
-                return (
-                  <CommandItem
-                    key={option.id}
-                    value={option.name}
-                    onSelect={() => {
-                      onPaletteChange(option.id);
-                      setOpen(false);
-                    }}
-                    className="flex-col items-start gap-1.5 px-2 py-2"
-                  >
-                    <div className="flex w-full items-center gap-2">
-                      <span className="truncate text-xs font-medium text-muted-foreground">
-                        {option.name}
-                      </span>
-                      <Check className={cn("ml-auto h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
-                    </div>
-                    <PaletteStrip colors={option.colors} className="h-5 w-full" />
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Combobox
+      value={palette}
+      onValueChange={(p) => {
+        if (p) onPaletteChange(p.id);
+      }}
+      items={palettes}
+      itemToStringValue={(p: PalettePreset) => p.name}
+    >
+      <ComboboxTrigger
+        render={
+          <Button type="button" variant="outline" className="h-8 w-full justify-between px-2.5 font-normal">
+            <span className="truncate">{palette.name}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+          </Button>
+        }
+      />
+      <ComboboxContent className="min-w-(--anchor-width)" initialFocus={false}>
+        <ComboboxInput showTrigger={false} placeholder="Search" />
+        <ComboboxEmpty>No palettes found.</ComboboxEmpty>
+        <ComboboxList onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}>
+          {(option) => (
+            <ComboboxItem key={option.id} value={option} className="flex-col items-start gap-1.5 py-2 pr-1.5">
+              <span className="truncate text-xs font-medium text-muted-foreground">{option.name}</span>
+              <PaletteStrip colors={option.colors} className="h-5 w-full" />
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 
-export function ColorInput({
-  value,
-  onChange,
-  ariaLabel = "Color",
-  className,
-  size = "default",
-  showValue = true,
-}: ColorInputProps) {
+export function ColorInput({ value, onChange, ariaLabel = "Color", className, size = "default", showValue = true }: ColorInputProps) {
   const paletteId = useAnimationStore((state) => state.doc.paletteId);
   const setPaletteId = useAnimationStore((state) => state.setPaletteId);
-  const [format, setFormat] = useState<ColorFormat>("RGB");
+  const [format, setFormat] = useState<ColorFormat>("HSV");
   const [open, setOpen] = useState(false);
   const [showSamplerHint, setShowSamplerHint] = useState(false);
   const samplerDragRef = useRef<{
@@ -283,11 +219,7 @@ export function ColorInput({
 
     if (!drag.dragging) {
       const rect = event.currentTarget.getBoundingClientRect();
-      const outside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (outside) {
         drag.dragging = true;
 
@@ -363,46 +295,20 @@ export function ColorInput({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          aria-label={ariaLabel}
-          className={cn(
-            "justify-start gap-2 px-1.5 font-mono text-xs",
-            size === "compact" ? "h-8 w-8 rounded-lg p-1" : "h-8 min-w-[118px]",
-            className,
-          )}
-        >
-          <span className="flex h-6 w-6 shrink-0 rounded-lg border border-border bg-background p-1">
-            <span className="h-full w-full rounded-md" style={{ background: hex }} />
-          </span>
-          {showValue && size !== "compact" ? <span>{hex}</span> : null}
-        </Button>
+      <PopoverTrigger render={<Button type="button" variant="outline" aria-label={ariaLabel} className={cn("justify-start gap-2 px-2 font-mono text-xs", size === "compact" ? "h-8 w-8 rounded-lg p-1" : "h-8", className)} />}>
+        <span className="h-4 w-4 rounded-full border-border border" style={{ background: hex }} />
+        {showValue && size !== "compact" ? <span>{hex}</span> : null}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="start" sideOffset={8}>
         <div className="muy-color-picker relative flex flex-col gap-4">
           <HsvColorPicker color={hsv} onChange={handlePickerChange} />
 
-          <div className="flex items-start gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={canUseEyeDropper ? "Sample screen color" : "Sample canvas color"}
-              title={canUseEyeDropper ? "Sample screen color" : "Drag to sample color"}
-              onClick={handleEyeDropper}
-              onPointerDown={handleSamplerPointerDown}
-              onPointerMove={handleSamplerPointerMove}
-              onPointerUp={handleSamplerPointerUp}
-              onPointerCancel={handleSamplerPointerCancel}
-            >
+          <div className="flex items-center gap-4">
+            <Button type="button" variant="outline" size="default" aria-label={canUseEyeDropper ? "Sample screen color" : "Sample canvas color"} title={canUseEyeDropper ? "Sample screen color" : "Drag to sample color"} onClick={handleEyeDropper} onPointerDown={handleSamplerPointerDown} onPointerMove={handleSamplerPointerMove} onPointerUp={handleSamplerPointerUp} onPointerCancel={handleSamplerPointerCancel}>
               <TooltipProvider>
                 <Tooltip open={showSamplerHint && !canUseEyeDropper}>
-                  <TooltipTrigger asChild>
-                    <span className="flex h-full w-full items-center justify-center">
-                      <Pipette className="h-4 w-4" />
-                    </span>
+                  <TooltipTrigger render={<span className="flex h-full w-full items-center justify-center" />}>
+                    <Pipette className="h-4 w-4" />
                   </TooltipTrigger>
                   <TooltipContent side="top" align="center" sideOffset={8}>
                     Drag to sample color
@@ -411,62 +317,65 @@ export function ColorInput({
               </TooltipProvider>
             </Button>
 
-            <div className="grid flex-1 grid-cols-4 gap-1 rounded-lg border border-border bg-background p-1">
-              {(["HEX", "RGB", "HSL", "HSV"] as const).map((option) => (
-                <Button
-                  key={option}
-                  type="button"
-                  variant={format === option ? "secondary" : "ghost"}
-                  size="xs"
-                  className="h-6 px-1.5 text-[11px]"
-                  onClick={() => setFormat(option)}
-                >
-                  {option}
-                </Button>
-              ))}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Select value={format} onValueChange={(v) => setFormat(v as ColorFormat)}>
+                <SelectTrigger className="w-18 shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="HEX">HEX</SelectItem>
+                    <SelectItem value="RGB">RGB</SelectItem>
+                    <SelectItem value="HSL">HSL</SelectItem>
+                    <SelectItem value="HSV">HSV</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              <div className="flex min-w-0 flex-1 gap-1">
+                {format === "HEX" ? (
+                  <Input
+                    aria-label="Hex color"
+                    value={hexDraft}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      if (!isPartialHexInput(next)) return;
+                      setHexDraft(next);
+                      commitHex(next);
+                    }}
+                    onBlur={() => setHexDraft(hex)}
+                    className="min-w-0 text-center font-mono"
+                    maxLength={7}
+                    placeholder="#000000"
+                  />
+                ) : null}
+
+                {format === "RGB" ? (
+                  <>
+                    <NumericInput label="Red" value={rgb.r} min={0} max={255} onCommit={(r) => onChange(rgbToHex({ ...rgb, r }))} />
+                    <NumericInput label="Green" value={rgb.g} min={0} max={255} onCommit={(g) => onChange(rgbToHex({ ...rgb, g }))} />
+                    <NumericInput label="Blue" value={rgb.b} min={0} max={255} onCommit={(b) => onChange(rgbToHex({ ...rgb, b }))} />
+                  </>
+                ) : null}
+
+                {format === "HSL" ? (
+                  <>
+                    <NumericInput label="Hue" value={hsl.h} min={0} max={360} onCommit={(h) => onChange(hslToHex({ ...hsl, h }))} />
+                    <NumericInput label="Saturation" value={hsl.s} min={0} max={100} onCommit={(s) => onChange(hslToHex({ ...hsl, s }))} />
+                    <NumericInput label="Lightness" value={hsl.l} min={0} max={100} onCommit={(l) => onChange(hslToHex({ ...hsl, l }))} />
+                  </>
+                ) : null}
+
+                {format === "HSV" ? (
+                  <>
+                    <NumericInput label="Hue" value={hsv.h} min={0} max={360} onCommit={(h) => onChange(hsvToHex({ ...hsv, h }))} />
+                    <NumericInput label="Saturation" value={hsv.s} min={0} max={100} onCommit={(s) => onChange(hsvToHex({ ...hsv, s }))} />
+                    <NumericInput label="Value" value={hsv.v} min={0} max={100} onCommit={(v) => onChange(hsvToHex({ ...hsv, v }))} />
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
-
-          {format === "HEX" ? (
-            <Input
-              aria-label="Hex color"
-              value={hexDraft}
-              onChange={(event) => {
-                const next = event.target.value;
-                if (!isPartialHexInput(next)) return;
-                setHexDraft(next);
-                commitHex(next);
-              }}
-              onBlur={() => setHexDraft(hex)}
-              className="h-7 font-mono text-sm"
-              maxLength={7}
-              placeholder="#000000"
-            />
-          ) : null}
-
-          {format === "RGB" ? (
-            <div className="grid grid-cols-3 gap-1">
-              <NumericInput label="Red" value={rgb.r} min={0} max={255} onCommit={(r) => onChange(rgbToHex({ ...rgb, r }))} />
-              <NumericInput label="Green" value={rgb.g} min={0} max={255} onCommit={(g) => onChange(rgbToHex({ ...rgb, g }))} />
-              <NumericInput label="Blue" value={rgb.b} min={0} max={255} onCommit={(b) => onChange(rgbToHex({ ...rgb, b }))} />
-            </div>
-          ) : null}
-
-          {format === "HSL" ? (
-            <div className="grid grid-cols-3 gap-1">
-              <NumericInput label="Hue" value={hsl.h} min={0} max={360} onCommit={(h) => onChange(hslToHex({ ...hsl, h }))} />
-              <NumericInput label="Saturation" value={hsl.s} min={0} max={100} onCommit={(s) => onChange(hslToHex({ ...hsl, s }))} />
-              <NumericInput label="Lightness" value={hsl.l} min={0} max={100} onCommit={(l) => onChange(hslToHex({ ...hsl, l }))} />
-            </div>
-          ) : null}
-
-          {format === "HSV" ? (
-            <div className="grid grid-cols-3 gap-1">
-              <NumericInput label="Hue" value={hsv.h} min={0} max={360} onCommit={(h) => onChange(hsvToHex({ ...hsv, h }))} />
-              <NumericInput label="Saturation" value={hsv.s} min={0} max={100} onCommit={(s) => onChange(hsvToHex({ ...hsv, s }))} />
-              <NumericInput label="Value" value={hsv.v} min={0} max={100} onCommit={(v) => onChange(hsvToHex({ ...hsv, v }))} />
-            </div>
-          ) : null}
 
           <div className="h-px bg-border" />
 
@@ -483,11 +392,11 @@ export function ColorInput({
                   key={swatchHex}
                   type="button"
                   aria-label={`Use ${swatchHex}`}
-                  onClick={() => { onChange(swatchHex); setOpen(false); }}
-                  className={cn(
-                    "h-6 w-6 rounded-full border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    swatchHex === hex ? "border-foreground" : "border-transparent",
-                  )}
+                  onClick={() => {
+                    onChange(swatchHex);
+                    setOpen(false);
+                  }}
+                  className={cn("h-6 w-6 rounded-full border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background", swatchHex === hex ? "border-foreground" : "border-transparent")}
                   style={{ background: swatchHex }}
                 />
               );
