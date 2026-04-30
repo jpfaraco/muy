@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Select } from "@base-ui-components/react/select";
 import { ColorInput } from "@/components/ColorInput";
 import { Scrubber } from "@/components/ui/Scrubber";
-import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Eye, ChevronsUpDown, Check } from "lucide-react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MoveHorizontal, MoveVertical, RotateCw, Scaling, Blend, Eye } from "lucide-react";
 import { useAnimationStore } from "../../store/animationStore";
 import { useInteractionStore } from "../../store/interactionStore";
 import { useCanvasViewStore } from "../../store/canvasViewStore";
@@ -221,36 +221,26 @@ function TextOptions() {
       <div className="h-6 w-px shrink-0 bg-border" />
 
       {/* Font family */}
-      <Select.Root
+      <Select
         value={displayFamily}
         onValueChange={handleFontChange}
         onOpenChange={(open) => {
           if (open) prefetchAllFonts();
         }}
       >
-        <Select.Trigger aria-label="Font family" className="flex h-8 w-50 items-center justify-between gap-1.5 rounded-md border border-border bg-background px-2 text-sm font-medium text-foreground shadow-xs hover:bg-accent/50 focus-visible:outline-none">
-          <Select.Value />
-          <Select.Icon>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
-          </Select.Icon>
-        </Select.Trigger>
-        <Select.Portal>
-          <Select.Positioner sideOffset={4}>
-            <Select.Popup className="z-50 min-w-50 overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg">
-              {CURATED_FONTS.map(({ family }) => (
-                <Select.Item key={family} value={family} className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent data-[highlighted]:bg-accent">
-                  <Select.ItemText>
-                    <span style={{ fontFamily: family }}>{family}</span>
-                  </Select.ItemText>
-                  <Select.ItemIndicator className="ml-auto">
-                    <Check className="h-3 w-3" />
-                  </Select.ItemIndicator>
-                </Select.Item>
-              ))}
-            </Select.Popup>
-          </Select.Positioner>
-        </Select.Portal>
-      </Select.Root>
+        <SelectTrigger aria-label="Font family" className="w-50">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {CURATED_FONTS.map(({ family }) => (
+              <SelectItem key={family} value={family}>
+                <span style={{ fontFamily: family }}>{family}</span>
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
