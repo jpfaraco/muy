@@ -17,14 +17,14 @@ export function Toolbox() {
   const fit = useCanvasViewStore((s) => s.fit);
 
   const btn = (tool: ActiveTool, Icon: React.ElementType, label: string) => (
-    <button key={tool} aria-label={label} onClick={() => setActiveTool(activeTool === tool ? "select" : tool)} className={cn("flex h-10 w-10 items-center justify-center rounded-md transition-colors", activeTool === tool ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>
-      <Icon className="h-4 w-4" />
+    <button key={tool} aria-label={label} onClick={() => setActiveTool(activeTool === tool ? "select" : tool)} className={cn("flex h-9 w-9 items-center justify-center rounded-md transition-colors", activeTool === tool ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>
+      <Icon className="h-5 w-5" />
     </button>
   );
 
   const historyBtn = (Icon: React.ElementType, label: string, enabled: boolean, action: () => void) => (
-    <button aria-label={label} onClick={action} disabled={!enabled} className={cn("flex h-10 w-10 items-center justify-center rounded-md transition-colors", enabled ? "text-muted-foreground hover:bg-accent/50 hover:text-foreground" : "text-muted-foreground opacity-50")}>
-      <Icon className="h-4 w-4" />
+    <button aria-label={label} onClick={action} disabled={!enabled} className={cn("flex h-9 w-9 items-center justify-center rounded-md transition-colors", enabled ? "text-muted-foreground hover:bg-accent/50 hover:text-foreground" : "text-muted-foreground opacity-50")}>
+      <Icon className="h-5 w-5" />
     </button>
   );
 
