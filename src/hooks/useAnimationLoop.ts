@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAnimationStore } from '../store/animationStore'
+import { useInteractionStore } from '../store/interactionStore'
 
 /**
  * Drives the animation playback via requestAnimationFrame.
@@ -16,6 +17,7 @@ export function useAnimationLoop() {
   const isPlaying = useAnimationStore((s) => s.isPlaying)
   const fps = useAnimationStore((s) => s.doc.fps)
   const frameCount = useAnimationStore((s) => s.doc.frameCount)
+  const playbackSpeed = useInteractionStore((s) => s.playbackSpeed)
   const lastTimestampRef = useRef<number | null>(null)
   const rafIdRef = useRef<number | null>(null)
 
@@ -29,7 +31,7 @@ export function useAnimationLoop() {
       return
     }
 
-    const frameDuration = 1000 / fps
+    const frameDuration = 1000 / (fps * playbackSpeed)
 
     function tick(timestamp: number) {
       if (lastTimestampRef.current === null) {
@@ -63,5 +65,5 @@ export function useAnimationLoop() {
         rafIdRef.current = null
       }
     }
-  }, [isPlaying, fps, frameCount])
+  }, [isPlaying, fps, frameCount, playbackSpeed])
 }

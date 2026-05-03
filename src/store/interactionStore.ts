@@ -47,6 +47,8 @@ interface InteractionState {
   textFontFamily: string
   /** ID of the text layer currently open for inline editing; null when not editing */
   editingTextLayerId: string | null
+  /** Playback speed multiplier (fraction of doc fps); does not affect the doc fps setting */
+  playbackSpeed: number
 }
 
 interface InteractionActions {
@@ -77,6 +79,7 @@ interface InteractionActions {
   setTextSize: (size: number) => void
   setTextFontFamily: (fontFamily: string) => void
   setEditingTextLayerId: (id: string | null) => void
+  setPlaybackSpeed: (speed: number) => void
   startReorder: (layerIds: string[]) => void
   updateReorderInsert: (insertBefore: string | null, insertParent: string | null) => void
   endReorder: () => void
@@ -111,6 +114,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   textSize: 64,
   textFontFamily: 'Patrick Hand',
   editingTextLayerId: null,
+  playbackSpeed: 1,
 
   setActiveTool: (tool) => {
     const modeMap: Record<ActiveTool, AppMode> = {
@@ -303,6 +307,7 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
   setTextSize: (textSize) => set({ textSize }),
   setTextFontFamily: (textFontFamily) => set({ textFontFamily }),
   setEditingTextLayerId: (editingTextLayerId) => set({ editingTextLayerId }),
+  setPlaybackSpeed: (playbackSpeed) => set({ playbackSpeed }),
 
   getEffectiveHeldLayers: () => {
     const { heldLayerIds, layerListEntries } = get()

@@ -196,6 +196,7 @@ function DropdownMenuRadioItem({
 }) {
   return (
     <MenuPrimitive.RadioItem
+      closeOnClick
       data-slot="dropdown-menu-radio-item"
       data-inset={inset}
       className={cn(

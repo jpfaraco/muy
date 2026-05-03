@@ -2,7 +2,8 @@ import { MousePointer2, Hand, Pencil, Eraser, Type, Crosshair, Film, Undo2, Redo
 import { useInteractionStore } from "../../store/interactionStore";
 import { useAnimationHistory, useAnimationStore } from "../../store/animationStore";
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from "../../store/canvasViewStore";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActiveTool } from "../../store/interactionStore";
 
@@ -41,26 +42,18 @@ export function Toolbox() {
       {btn("pivot", Crosshair, "Pivot")}
       {btn("animate", Film, "Animate")}
       <div className="h-6 w-px shrink-0 bg-border" />
-      <Select
-        onValueChange={(value) => {
-          if (value === "zoom_in") zoomByFactor(CANVAS_ZOOM_STEP);
-          else if (value === "zoom_out") zoomByFactor(1 / CANVAS_ZOOM_STEP);
-          else if (value === "zoom_100") setZoomPreset(1);
-          else if (value === "zoom_fit") fit();
-        }}
-      >
-        <SelectTrigger aria-label="Zoom" className="w-20">
-          <SelectValue>{() => `${Math.round(zoom * 100)}%`}</SelectValue>
-        </SelectTrigger>
-        <SelectContent align="end">
-          <SelectGroup>
-            <SelectItem value="zoom_in">Zoom in</SelectItem>
-            <SelectItem value="zoom_out">Zoom out</SelectItem>
-            <SelectItem value="zoom_100">100%</SelectItem>
-            <SelectItem value="zoom_fit">Fit</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex h-9 w-20 items-center justify-between gap-1 rounded-md border border-input bg-transparent px-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground focus:outline-none">
+          {`${Math.round(zoom * 100)}%`}
+          <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => zoomByFactor(CANVAS_ZOOM_STEP)}>Zoom in</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => zoomByFactor(1 / CANVAS_ZOOM_STEP)}>Zoom out</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setZoomPreset(1)}>100%</DropdownMenuItem>
+          <DropdownMenuItem onClick={fit}>Fit</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
