@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { CircleHelp } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { CircleHelp, Check } from 'lucide-react'
 import {
   Menubar,
   MenubarContent,
@@ -12,22 +12,30 @@ import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { ExportVideoDialog } from './ExportVideoDialog'
 import { HelpDialog } from './HelpDialog'
 import { NewDocumentDialog } from './NewDocumentDialog'
+import { SaveAsDialog } from './SaveAsDialog'
+import { ProjectBrowserDialog } from './ProjectBrowserDialog'
+import { ExportDialog } from './ExportDialog'
+import { ImportDialog } from './ImportDialog'
 import { cn } from '@/lib/utils'
 import { CANVAS_ZOOM_STEP, useCanvasViewStore } from '../store/canvasViewStore'
 import { getFlatRenderIds, useAnimationHistory, useAnimationStore } from '../store/animationStore'
 import { useInteractionStore } from '../store/interactionStore'
-
-const SoonBadge = () => (
-  <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-    Soon
-  </span>
-)
+import { useProjectStore } from '../store/projectStore'
+import { serializeProject } from '../lib/muyFile'
+import { updateProject, createProject, setLastOpenedProjectId } from '../lib/projectDb'
+import { generateThumbnail } from '../lib/thumbnail'
 
 export function Header() {
   const [newDocOpen, setNewDocOpen] = useState(false)
+  const [projectBrowserOpen, setProjectBrowserOpen] = useState(false)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
   const [exportVideoOpen, setExportVideoOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [savedIndicator, setSavedIndicator] = useState(false)
+
   const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
   const setZoomPreset = useCanvasViewStore((s) => s.setZoomPreset)
   const fit = useCanvasViewStore((s) => s.fit)
@@ -38,6 +46,60 @@ export function Header() {
 
   const canUndo = useAnimationHistory((s) => s.pastStates.length > 0)
   const canRedo = useAnimationHistory((s) => s.futureStates.length > 0)
+
+  const currentProjectId = useProjectStore((s) => s.currentProjectId)
+  const currentProjectName = useProjectStore((s) => s.currentProjectName)
+  const isDirty = useProjectStore((s) => s.isDirty)
+
+  const flashSaved = useCallback(() => {
+    setSavedIndicator(true)
+    setTimeout(() => setSavedIndicator(false), 2000)
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    if (!currentProjectId) {
+      // Untitled — open Save As dialog
+      setSaveAsOpen(true)
+      return
+    }
+
+    const { doc: currentDoc, drawStrokes } = useAnimationStore.getState()
+    const { setSuspendDirtyTracking, setLastSavedAt, currentProjectName: name } = useProjectStore.getState()
+
+    try {
+      const file = await serializeProject(currentDoc, drawStrokes)
+      const thumbnail = await generateThumbnail(currentDoc, drawStrokes, useAnimationStore.getState().currentFrame)
+      setSuspendDirtyTracking(true)
+      try {
+        await updateProject(currentProjectId, { data: file, thumbnail, name: name ?? 'Untitled' })
+        setLastSavedAt(Date.now())
+        setLastOpenedProjectId(currentProjectId)
+        flashSaved()
+      } finally {
+        setSuspendDirtyTracking(false)
+      }
+    } catch (err) {
+      // Surface error via console; a future iteration can show a toast
+      console.error('Save failed:', err)
+    }
+  }, [currentProjectId, flashSaved])
+
+  const handleSaveAs = useCallback(async (name: string) => {
+    const { doc: currentDoc, drawStrokes, currentFrame } = useAnimationStore.getState()
+    const { setSuspendDirtyTracking, setCurrentProject } = useProjectStore.getState()
+
+    const file = await serializeProject(currentDoc, drawStrokes)
+    const thumbnail = await generateThumbnail(currentDoc, drawStrokes, currentFrame)
+    setSuspendDirtyTracking(true)
+    try {
+      const record = await createProject(name, file, thumbnail)
+      setCurrentProject(record.id, record.name)
+      setLastOpenedProjectId(record.id)
+      flashSaved()
+    } finally {
+      setSuspendDirtyTracking(false)
+    }
+  }, [flashSaved])
 
   return (
     <>
@@ -67,8 +129,18 @@ export function Header() {
               <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">File</MenubarTrigger>
               <MenubarContent>
                 <MenubarItem onClick={() => setNewDocOpen(true)}>New</MenubarItem>
-                <MenubarItem disabled className="whitespace-nowrap">Open… <SoonBadge /></MenubarItem>
-                <MenubarItem disabled className="whitespace-nowrap">Save… <SoonBadge /></MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setProjectBrowserOpen(true)}>Open…</MenubarItem>
+                <MenubarItem
+                  className="whitespace-nowrap"
+                  onClick={handleSave}
+                >
+                  Save{isDirty && !savedIndicator ? '' : ''}
+                  {savedIndicator && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
+                </MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setSaveAsOpen(true)}>Save as…</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem className="whitespace-nowrap" onClick={() => setImportOpen(true)}>Import…</MenubarItem>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setExportOpen(true)}>Export…</MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem className="whitespace-nowrap" onClick={() => setCanvasSettingsOpen(true)}>Canvas settings…</MenubarItem>
                 <MenubarItem className="whitespace-nowrap" onClick={() => setExportVideoOpen(true)}>Export video…</MenubarItem>
@@ -113,6 +185,13 @@ export function Header() {
               </MenubarContent>
             </MenubarMenu>
           </Menubar>
+
+          {/* Project name indicator */}
+          {currentProjectName && (
+            <span className="text-sm text-muted-foreground">
+              {currentProjectName}{isDirty ? ' ·' : ''}
+            </span>
+          )}
         </div>
 
         {/* Right: help */}
@@ -126,6 +205,15 @@ export function Header() {
       </header>
 
       <NewDocumentDialog open={newDocOpen} onOpenChange={setNewDocOpen} />
+      <ProjectBrowserDialog open={projectBrowserOpen} onOpenChange={setProjectBrowserOpen} />
+      <SaveAsDialog
+        open={saveAsOpen}
+        onOpenChange={setSaveAsOpen}
+        defaultName={currentProjectName ?? 'Untitled'}
+        onConfirm={handleSaveAs}
+      />
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <CanvasSettingsDialog open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen} />
       <ExportVideoDialog open={exportVideoOpen} onOpenChange={setExportVideoOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
