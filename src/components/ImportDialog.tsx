@@ -95,7 +95,7 @@ export function ImportDialog({ open, onOpenChange }: Props) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".muy,application/json"
+        accept=".muy,application/json,application/octet-stream"
         className="sr-only"
         aria-hidden
         onChange={handleFileChange}
