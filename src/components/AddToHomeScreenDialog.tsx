@@ -1,4 +1,4 @@
-import { CheckCircle2, Share, Plus } from 'lucide-react'
+import { CheckCircle2, Share, Plus, MoreHorizontal, Menu } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,9 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-function detectContext(): 'standalone' | 'ios' | 'other' {
+type Context = 'standalone' | 'ios-safari' | 'ios-chrome' | 'ios-firefox' | 'ios-other' | 'other'
+
+function detectContext(): Context {
   const isStandalone =
     ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone === true) ||
     window.matchMedia('(display-mode: standalone)').matches
@@ -22,17 +24,20 @@ function detectContext(): 'standalone' | 'ios' | 'other' {
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
     (ua.includes('Mac') && 'ontouchend' in document)
-  return isIOS ? 'ios' : 'other'
+
+  if (!isIOS) return 'other'
+  if (/CriOS/.test(ua)) return 'ios-chrome'
+  if (/FxiOS/.test(ua)) return 'ios-firefox'
+  if (/Safari/.test(ua)) return 'ios-safari'
+  return 'ios-other'
 }
 
-const steps = [
-  {
-    icon: Share,
-    label: <>Tap the <strong>Share</strong> button (⬆) in Safari's toolbar</>,
-  },
+type Step = { icon: React.ElementType; label: React.ReactNode }
+
+const sharedSteps: Step[] = [
   {
     icon: Plus,
-    label: <>Scroll down and tap <strong>Add to Home Screen</strong></>,
+    label: <>Tap <strong>Add to Home Screen</strong></>,
   },
   {
     icon: CheckCircle2,
@@ -40,21 +45,48 @@ const steps = [
   },
 ]
 
+const firstStepByContext: Record<Exclude<Context, 'standalone' | 'other'>, Step> = {
+  'ios-safari': {
+    icon: Share,
+    label: <>Tap the <strong>Share</strong> button (⬆) in the toolbar</>,
+  },
+  'ios-chrome': {
+    icon: MoreHorizontal,
+    label: <>Tap the <strong>⋯</strong> button in the address bar</>,
+  },
+  'ios-firefox': {
+    icon: Menu,
+    label: <>Tap the <strong>menu</strong> button (☰) in the toolbar</>,
+  },
+  'ios-other': {
+    icon: Share,
+    label: <>Tap your browser's <strong>Share</strong> or menu button</>,
+  },
+}
+
+const descriptionByContext: Record<Context, string> = {
+  'standalone': 'Muy is already installed on your home screen.',
+  'ios-safari': 'Follow these steps in Safari to install Muy as an app.',
+  'ios-chrome': 'Follow these steps in Chrome to install Muy as an app.',
+  'ios-firefox': 'Follow these steps in Firefox to install Muy as an app.',
+  'ios-other': 'Follow these steps in your browser to install Muy as an app.',
+  'other': 'Open muy.video in Safari, Chrome, or Firefox on your iPad or iPhone, then follow these steps.',
+}
+
 export function AddToHomeScreenDialog({ open, onOpenChange }: Props) {
   const context = detectContext()
+
+  const steps: Step[] =
+    context === 'standalone' || context === 'other'
+      ? [firstStepByContext['ios-safari'], ...sharedSteps]
+      : [firstStepByContext[context], ...sharedSteps]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Add to home screen</DialogTitle>
-          <DialogDescription>
-            {context === 'standalone'
-              ? 'Muy is already installed on your home screen.'
-              : context === 'ios'
-              ? 'Follow these steps in Safari to install Muy as an app.'
-              : 'Open muy.video in Safari on your iPad or iPhone, then follow these steps.'}
-          </DialogDescription>
+          <DialogDescription>{descriptionByContext[context]}</DialogDescription>
         </DialogHeader>
 
         {context === 'standalone' ? (
