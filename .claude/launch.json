@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--host"],
-      "port": 5173
+      "runtimeExecutable": "/Users/jpfaraco/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": ["node_modules/.bin/vite", "--host"],
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "preview",

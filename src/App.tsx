@@ -12,6 +12,7 @@ import { Header } from './components/Header'
 import { LeftPanel } from './components/LeftPanel/LeftPanel'
 import { CanvasArea } from './components/Canvas/CanvasArea'
 import { Timeline } from './components/Timeline/Timeline'
+import { DragDropOverlay } from './components/DragDropOverlay'
 
 export default function App() {
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function App() {
         <CanvasArea />
       </div>
       <Timeline />
+      <DragDropOverlay />
     </div>
   )
 }

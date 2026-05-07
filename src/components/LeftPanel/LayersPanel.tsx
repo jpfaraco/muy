@@ -4,8 +4,7 @@ import { useAnimationStore } from '../../store/animationStore'
 import { useInteractionStore } from '../../store/interactionStore'
 import { LayerTreeItem } from './LayerTreeItem'
 import { Button } from '@/components/ui/button'
-import { DEFAULT_LAYER_PROPS } from '../../types/animation'
-import type { Layer, ImageAsset } from '../../types/animation'
+import { importImageFiles } from '../../lib/importImages'
 
 export function LayersPanel() {
   const doc = useAnimationStore((s) => s.doc)
@@ -22,41 +21,8 @@ export function LayersPanel() {
   const topLevelIds = doc.layerIds
 
   const handleImportFiles = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    if (fileArray.length === 0) return
-
-    const urls = fileArray.map((f) => URL.createObjectURL(f))
-    const name = fileArray[0].name.replace(/\.[^.]+$/, '')
-    const ts = Date.now()
-    const assetId = `asset-import-${ts}`
-    const layerId = `layer-import-${ts}`
-
-    const newAsset: ImageAsset = { id: assetId, name, urls }
-    const newLayer: Layer = {
-      id: layerId,
-      name,
-      type: 'layer',
-      layerType: 'image',
-      imageAssetId: assetId,
-      parentId: null,
-    }
-
-    const baseProps = { ...DEFAULT_LAYER_PROPS, x: 400, y: 250 }
-    const { doc: currentDoc } = useAnimationStore.getState()
-    const frames = currentDoc.frames.map((fd, i) =>
-      i === 0 ? { ...fd, [layerId]: { ...baseProps } } : fd
-    )
-
-    setDoc({
-      ...currentDoc,
-      layerIds: [...currentDoc.layerIds, layerId],
-      layers: { ...currentDoc.layers, [layerId]: newLayer },
-      imageAssets: { ...currentDoc.imageAssets, [assetId]: newAsset },
-      frames,
-    })
-
+    if (!e.target.files) return
+    importImageFiles(Array.from(e.target.files), setDoc)
     e.target.value = ''
   }, [setDoc])
 
