@@ -135,6 +135,22 @@ Located in `src/components/widgets/`. Each widget type (`SliderWidget`, `Rotatio
 
 Path alias `@/` maps to `src/` (configured in `tsconfig.app.json` and `vite.config.ts`).
 
+## Versioning
+
+The version in `package.json` is injected into the About dialog at build time via `__APP_VERSION__`. Always keep it in sync with what's been shipped.
+
+**Rules — apply these when committing:**
+
+| Change type | Version bump | Command |
+|---|---|---|
+| `fix:`, `refactor:`, `docs:`, `chore:` | Patch — `1.0.x` | `npm version patch` |
+| `feat:` — new user-visible feature | Minor — `1.x.0` | `npm version minor` |
+| Breaking change or major milestone | Major — `x.0.0` | `npm version major` |
+
+Multiple commits can accumulate before a bump — bump once when a meaningful batch is ready to ship. After bumping, include the `package.json` and `package-lock.json` changes in the same commit.
+
+Use `--no-git-tag-version` flag if you don't want a git tag: `npm version minor --no-git-tag-version`.
+
 ## Testing
 
 Tests live in `src/test/`. Coverage targets: stores, hooks, and sample scene initialization. The jsdom environment is configured in `vite.config.ts`; setup file at `src/test/setup.ts` imports `@testing-library/jest-dom`.
