@@ -248,16 +248,18 @@ export async function downloadMuyFile(file: MuyFileV1, filename: string): Promis
 
   // On iOS/iPadOS, navigator.share with files avoids the PWA-reload problem caused
   // by blob URL navigation. The native share sheet stays in-process.
+  // On desktop, share can fail with NotAllowedError (async gap breaks gesture context),
+  // so we fall through to the anchor click on any non-abort error.
   if (typeof navigator.canShare === 'function') {
     const shareFile = new File([blob], normalizedFilename, { type: 'application/octet-stream' })
     if (navigator.canShare({ files: [shareFile] })) {
       try {
         await navigator.share({ files: [shareFile], title: normalizedFilename })
+        return
       } catch (err) {
-        // AbortError means the user dismissed the share sheet — not an error
-        if (!(err instanceof Error && err.name === 'AbortError')) throw err
+        if (err instanceof Error && err.name === 'AbortError') return
+        // Any other error (e.g. NotAllowedError on desktop) — fall through to anchor click
       }
-      return
     }
   }
 
