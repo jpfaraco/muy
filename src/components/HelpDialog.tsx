@@ -15,7 +15,7 @@ interface Props {
 interface Section {
   heading?: string
   body?: string
-  items?: { icon?: React.ElementType; label: string; detail?: string }[]
+  items?: { icon?: React.ElementType; label: string; detail?: React.ReactNode }[]
   rows?: { keys: string; action: string }[]
 }
 
@@ -176,7 +176,7 @@ const articles: Article[] = [
           {
             icon: Settings2,
             label: 'Sensitivity',
-            detail: 'Each layer has a sensitivity %. Tap the ⚙ icon in the Layers panel header to reveal the sensitivity scrubbers. Lower values give subtler, smoother motion; higher values give larger, faster movements.',
+            detail: <>Each layer has a sensitivity %. Tap the <Settings2 className="inline h-3 w-3 mx-0.5 -mt-0.5" /> icon in the Layers panel header to reveal the sensitivity scrubbers. Lower values give subtler, smoother motion; higher values give larger, faster movements.</>,
           },
           {
             icon: Gauge,
