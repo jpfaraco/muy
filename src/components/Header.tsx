@@ -27,6 +27,8 @@ import { serializeProject } from '../lib/muyFile'
 import { updateProject, createProject, setLastOpenedProjectId } from '../lib/projectDb'
 import { generateThumbnail } from '../lib/thumbnail'
 
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches
+
 export function Header() {
   const [newDocOpen, setNewDocOpen] = useState(false)
   const [projectBrowserOpen, setProjectBrowserOpen] = useState(false)
@@ -194,7 +196,7 @@ export function Header() {
               <MenubarContent>
                 <MenubarItem className="whitespace-nowrap" onClick={() => setHelpOpen(true)}>How Muy works</MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem className="whitespace-nowrap" onClick={() => setAddToHomeOpen(true)}>Add to home screen…</MenubarItem>
+                {isTouchDevice && <MenubarItem className="whitespace-nowrap" onClick={() => setAddToHomeOpen(true)}>Add to home screen…</MenubarItem>}
                 <MenubarSeparator />
                 <MenubarItem className="whitespace-nowrap" onClick={() => setAboutOpen(true)}>About Muy</MenubarItem>
               </MenubarContent>
