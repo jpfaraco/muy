@@ -24,19 +24,19 @@ npm run test:watch
 
 ## How it works
 
-1. Open the app — a sample scene loads with several layers (background, foreground, bunny poses, etc.)
+1. **Build your scene** — import image layers via the + button in the Layers panel, or draw with the Pencil or Text tool.
 2. **Select layers** — tap a layer name in the Layers panel to toggle selection. With the Select tool active, drag the canvas to move selected layers.
-3. **Animate** — select the Animate tool (filmstrip icon in the toolbar). Property widgets (Move X, Move Y, Rotate, Scale, Alpha, Path) appear above the toolbar. Hit Play, then drag a widget to record that property in real time.
-4. Hit Stop, scrub the timeline, and use Undo (⌘Z / Ctrl+Z) to try again.
+3. **Animate** — select the Animate tool (filmstrip icon). Property buttons (Move X, Move Y, Rotate, Scale, Alpha, Reveal) appear above the toolbar. Hit Play, then drag a widget to record that property in real time.
+4. Hit Stop, scrub the timeline, and use Undo (⌘Z / Ctrl+Z) to discard the entire take and try again.
 
 The toolbar also has Pencil, Eraser, and Pivot tools for building and adjusting your scene. Property widgets are dismissed by flicking them away.
+
+## Projects
+
+Projects are saved to your browser's local storage. Use **File → Save** and **File → Open** to manage them. Use **File → Export** to download a `.muy` file for backup or transfer, and **File → Import** to load one.
 
 ## Tech stack
 
 React 19 · TypeScript · Vite · Zustand · Tailwind CSS v4 · HTML5 Canvas · Pointer Events API
 
 Designed for iPad + touch first; desktop mouse is secondary.
-
-## Status
-
-Early MVP — core performance-capture loop is working. No export or persistence; playback only.
