@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import {
-  MousePointer2, Pencil, Eraser, Crosshair, Film, Layers,
-  Command, Search, MoveHorizontal, RotateCcw, Lightbulb,
+  MousePointer2, Pencil, Eraser, Crosshair, Film,
+  Command, Search, Settings2, Gauge, Lightbulb,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -22,8 +22,11 @@ interface Section {
 interface Article {
   id: string
   title: string
+  desktopOnly?: boolean
   sections: Section[]
 }
+
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches
 
 const articles: Article[] = [
   {
@@ -36,10 +39,72 @@ const articles: Article[] = [
       {
         heading: 'Workflow',
         items: [
-          { label: 'Build your scene', detail: 'Import image layers via + in the Layers panel, or draw with the Pencil tool.' },
-          { label: 'Select layers', detail: 'Tap a layer to select it; tap again to deselect. Drag the canvas with Select active to move selected layers.' },
-          { label: 'Record a performance', detail: 'Pick the Animate tool (filmstrip icon). Choose a property to animate. Hit Play, then drag the widget handle to record movement in real time.' },
-          { label: 'Review and refine', detail: 'Hit Stop, scrub the timeline. Press ⌘Z to undo a full take in one step.' },
+          {
+            label: 'Build your scene',
+            detail: 'Import image layers via the + button in the Layers panel, or draw with the Pencil or Text tool. On desktop you can also drag image files directly onto the canvas.',
+          },
+          {
+            label: 'Select layers',
+            detail: 'Tap a layer in the Layers panel to select it; tap again to deselect. Multiple layers can be selected at once.',
+          },
+          {
+            label: 'Record a performance',
+            detail: 'Pick the Animate tool (filmstrip icon). Choose a property. Tap Play, then drag the widget to record movement in real time.',
+          },
+          {
+            label: 'Review and refine',
+            detail: 'Tap Stop and scrub the timeline. Undo discards the entire take in one step.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'layers',
+    title: 'Layers',
+    sections: [
+      {
+        heading: 'Selecting',
+        items: [
+          {
+            label: 'Toggle selection',
+            detail: 'Tap a layer to select it; tap again to deselect. In Select mode, dragging the canvas moves all selected layers at the current frame.',
+          },
+        ],
+      },
+      {
+        heading: 'Reordering',
+        items: [
+          {
+            label: 'Hold and drag',
+            detail: 'Hold down one or more layers in the Layers panel to enter reorder mode, then drag them to a new position in the stack.',
+          },
+        ],
+      },
+      {
+        heading: 'Grouping',
+        items: [
+          {
+            label: 'Create a group',
+            detail: "Tap the ⋯ menu on any layer and choose 'Add to group'. Then hold and drag other layers onto the group to add them.",
+          },
+          {
+            label: 'Ungroup',
+            detail: "Tap the ⋯ menu on a group or a layer inside it and choose 'Ungroup'.",
+          },
+        ],
+      },
+      {
+        heading: 'Visibility and deletion',
+        items: [
+          {
+            label: 'Hide / show',
+            detail: 'Tap the visibility icon next to a layer to hide or show it. Hidden layers are excluded from playback.',
+          },
+          {
+            label: 'Delete',
+            detail: "Tap the ⋯ menu on a layer and choose 'Delete'.",
+          },
         ],
       },
     ],
@@ -51,18 +116,83 @@ const articles: Article[] = [
       {
         items: [
           { icon: MousePointer2, label: 'Select', detail: 'Tap layers to select them. Drag the canvas to move all selected layers at the current frame.' },
-          { icon: Pencil, label: 'Pencil', detail: 'Draw smooth vector strokes on the canvas. Strokes are stored per-layer.' },
+          { icon: Pencil, label: 'Pencil', detail: 'Draw smooth vector strokes on the canvas. Strokes are stored per layer.' },
           { icon: Eraser, label: 'Eraser', detail: 'Erase parts of existing strokes. Drag across strokes to remove segments.' },
-          { icon: Crosshair, label: 'Pivot', detail: 'Click and drag to set the rotation pivot point for the selected layer.' },
-          { icon: Film, label: 'Animate', detail: 'Reveals property buttons (Move X, Move Y, Rotate, Scale, Alpha, Path). Drag a widget handle while playing to record keyframes.' },
+          { icon: Crosshair, label: 'Pivot', detail: 'Drag to set the rotation and scale pivot point for the selected layer.' },
+          { icon: Film, label: 'Animate', detail: 'Reveals the property buttons. Drag a widget while playing to record keyframes in real time.' },
         ],
       },
       {
-        heading: 'Property widgets',
+        heading: 'Properties',
         items: [
-          { icon: MoveHorizontal, label: 'Slider', detail: 'Used for Move X, Move Y, Scale, and Alpha. Drag left/right to change the value.' },
-          { icon: RotateCcw, label: 'Rotation wheel', detail: 'Drag around the circular handle to set the rotation angle.' },
-          { icon: Layers, label: 'Layer list', detail: "Used for the Path property — lets you sequence through a layer's image poses." },
+          { label: 'Move X / Move Y', detail: 'Shifts the layer horizontally or vertically.' },
+          { label: 'Rotate', detail: 'Rotates the layer. The center of rotation is the pivot point.' },
+          { label: 'Scale', detail: 'Resizes the layer. Scaling is relative to the pivot point.' },
+          { label: 'Alpha', detail: 'Controls the opacity of the layer, from fully transparent to fully opaque.' },
+          { label: 'Reveal', detail: 'Progressively reveals or hides vector strokes and text. Not available for image layers.' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'projects',
+    title: 'Projects',
+    sections: [
+      {
+        heading: 'Save and open',
+        items: [
+          {
+            label: 'Save / Open',
+            detail: "Projects are saved in your browser's local storage on this device. Use File → Save and File → Open to manage them.",
+          },
+          {
+            label: 'Save as',
+            detail: 'Creates a new named project in local storage.',
+          },
+        ],
+      },
+      {
+        heading: 'Export and import',
+        items: [
+          {
+            label: 'Export',
+            detail: 'Downloads your project as a .muy file. Use this to back up your work or transfer it to another device.',
+          },
+          {
+            label: 'Import',
+            detail: 'Opens a .muy file from your device. Useful for loading a project exported from another device or shared by someone else.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tips',
+    title: 'Tips & tricks',
+    sections: [
+      {
+        heading: 'Recording',
+        items: [
+          {
+            icon: Settings2,
+            label: 'Sensitivity',
+            detail: 'Each layer has a sensitivity %. Tap the ⚙ icon in the Layers panel header to reveal the sensitivity scrubbers. Lower values give subtler, smoother motion; higher values give larger, faster movements.',
+          },
+          {
+            icon: Gauge,
+            label: 'Playback speed',
+            detail: 'Use the speed selector in the timeline to slow down playback while recording. Performing in slow motion gives you more precise control. This does not affect the FPS or speed of the final animation.',
+          },
+          {
+            icon: Lightbulb,
+            label: 'Flick to dismiss',
+            detail: 'Flick a property widget quickly to dismiss it without recording.',
+          },
+          {
+            icon: Lightbulb,
+            label: 'Undo a take',
+            detail: 'Undoing after a recording discards the entire take in one step, not frame by frame.',
+          },
         ],
       },
     ],
@@ -70,6 +200,7 @@ const articles: Article[] = [
   {
     id: 'keyboard-shortcuts',
     title: 'Keyboard shortcuts',
+    desktopOnly: true,
     sections: [
       {
         heading: 'Editing',
@@ -90,28 +221,6 @@ const articles: Article[] = [
         rows: [
           { keys: '⌘ S', action: 'Save' },
           { keys: '⌘ ⇧ S', action: 'Save as…' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'tips',
-    title: 'Tips & tricks',
-    sections: [
-      {
-        heading: 'Recording',
-        items: [
-          { icon: Lightbulb, label: 'Sensitivity', detail: 'Each layer has a sensitivity % in the Layers panel. Lower values give smoother, subtler motion; higher values give larger, faster movements.' },
-          { icon: Lightbulb, label: 'Flick to dismiss', detail: 'Flick a property widget quickly to dismiss it without recording.' },
-          { icon: Lightbulb, label: 'Undo a take', detail: '⌘Z after a recording undoes the entire take in one step, not frame by frame.' },
-        ],
-      },
-      {
-        heading: 'Layers',
-        items: [
-          { icon: Lightbulb, label: 'Reorder layers', detail: 'Drag a layer row in the Layers panel to change its stacking order.' },
-          { icon: Lightbulb, label: 'Groups', detail: 'Select multiple layers and group them to move or animate them together.' },
-          { icon: Lightbulb, label: 'Drag to import', detail: 'Drop image files directly onto the canvas to import them as layers.' },
         ],
       },
     ],
@@ -137,12 +246,20 @@ export function HelpDialog({ open, onOpenChange }: Props) {
   const [activeId, setActiveId] = useState('getting-started')
   const [query, setQuery] = useState('')
 
-  const filtered = useMemo(() => articles.filter((a) => matchesQuery(a, query)), [query])
+  const visibleArticles = useMemo(
+    () => articles.filter((a) => !a.desktopOnly || !isTouchDevice),
+    [],
+  )
+
+  const filtered = useMemo(
+    () => visibleArticles.filter((a) => matchesQuery(a, query)),
+    [query, visibleArticles],
+  )
 
   const displayed = useMemo(() => {
-    if (!query) return articles.find((a) => a.id === activeId) ?? articles[0]
+    if (!query) return visibleArticles.find((a) => a.id === activeId) ?? visibleArticles[0]
     return filtered[0] ?? null
-  }, [query, filtered, activeId])
+  }, [query, filtered, activeId, visibleArticles])
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setQuery('') }}>
@@ -162,7 +279,7 @@ export function HelpDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
           <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-            {(query ? filtered : articles).map((a) => (
+            {(query ? filtered : visibleArticles).map((a) => (
               <button
                 key={a.id}
                 onClick={() => { setActiveId(a.id); setQuery('') }}
