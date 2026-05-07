@@ -195,9 +195,7 @@ export function Header() {
               <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">Help</MenubarTrigger>
               <MenubarContent>
                 <MenubarItem className="whitespace-nowrap" onClick={() => setHelpOpen(true)}>How Muy works</MenubarItem>
-                <MenubarSeparator />
                 {isTouchDevice && <MenubarItem className="whitespace-nowrap" onClick={() => setAddToHomeOpen(true)}>Add to home screen…</MenubarItem>}
-                <MenubarSeparator />
                 <MenubarItem className="whitespace-nowrap" onClick={() => setAboutOpen(true)}>About Muy</MenubarItem>
               </MenubarContent>
             </MenubarMenu>
