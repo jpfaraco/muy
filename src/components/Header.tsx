@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { CircleHelp, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import {
   Menubar,
   MenubarContent,
@@ -11,6 +11,8 @@ import {
 import { CanvasSettingsDialog } from './CanvasSettingsDialog'
 import { ExportVideoDialog } from './ExportVideoDialog'
 import { HelpDialog } from './HelpDialog'
+import { AboutDialog } from './AboutDialog'
+import { AddToHomeScreenDialog } from './AddToHomeScreenDialog'
 import { NewDocumentDialog } from './NewDocumentDialog'
 import { SaveAsDialog } from './SaveAsDialog'
 import { ProjectBrowserDialog } from './ProjectBrowserDialog'
@@ -34,6 +36,8 @@ export function Header() {
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false)
   const [exportVideoOpen, setExportVideoOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const [addToHomeOpen, setAddToHomeOpen] = useState(false)
   const [savedIndicator, setSavedIndicator] = useState(false)
 
   const zoomByFactor = useCanvasViewStore((s) => s.zoomByFactor)
@@ -184,6 +188,17 @@ export function Header() {
                 <MenubarItem className="whitespace-nowrap" onClick={fit}>Zoom to fit</MenubarItem>
               </MenubarContent>
             </MenubarMenu>
+
+            <MenubarMenu>
+              <MenubarTrigger className="gap-1 px-3 text-foreground aria-expanded:bg-accent">Help</MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem className="whitespace-nowrap" onClick={() => setHelpOpen(true)}>How Muy works</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem className="whitespace-nowrap" onClick={() => setAddToHomeOpen(true)}>Add to home screen…</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem className="whitespace-nowrap" onClick={() => setAboutOpen(true)}>About Muy</MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
           </Menubar>
 
           {/* Project name indicator */}
@@ -194,14 +209,6 @@ export function Header() {
           )}
         </div>
 
-        {/* Right: help */}
-        <button
-          aria-label="Help"
-          onClick={() => setHelpOpen(true)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <CircleHelp className="h-4 w-4" />
-        </button>
       </header>
 
       <NewDocumentDialog open={newDocOpen} onOpenChange={setNewDocOpen} />
@@ -217,6 +224,8 @@ export function Header() {
       <CanvasSettingsDialog open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen} />
       <ExportVideoDialog open={exportVideoOpen} onOpenChange={setExportVideoOpen} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      <AddToHomeScreenDialog open={addToHomeOpen} onOpenChange={setAddToHomeOpen} />
     </>
   )
 }
