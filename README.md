@@ -1,10 +1,10 @@
 # Muy
 
-A browser-based animation performance tool inspired by Bret Victor's unreleased iPad demo.
+An animation performance webapp inspired by Bret Victor's unreleased iPad demo.
 
 ![Muy](/public/thumb-muy.png "Muy")
 
-Instead of keyframes and tweens, you _perform_ animations in real time: select a layer in the layers panel, drag on the canvas, and the timeline records every frame as you move.
+Instead of keyframes and tweens, you _perform_ animations in real time: select a layer, manipulate its properties and the timeline records every frame. No install, no account needed. It's like Excalidraw, for animation.
 
 ## Getting started
 
